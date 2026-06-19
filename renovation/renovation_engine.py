@@ -8,12 +8,25 @@ def estimate_renovation_cost(
     months_until_keys: int,
     annual_inflation: float,
 ) -> pd.DataFrame:
+    package_aliases = {
+        "Basic": "Basic",
+        "basic": "Basic",
+        "Básico": "Basic",
+        "basico": "Basic",
+        "Recommended": "Recommended",
+        "recommended": "Recommended",
+        "Recomendado": "Recommended",
+        "recomendado": "Recommended",
+        "Premium": "Premium",
+        "premium": "Premium",
+    }
+    resolved_package = package_aliases.get(str(package).strip(), str(package).strip())
 
-    if package not in RENOVATION_PACKAGES:
+    if resolved_package not in RENOVATION_PACKAGES:
         raise ValueError(f"Invalid renovation package: {package}")
 
     inflation_factor = (1 + annual_inflation) ** (months_until_keys / 12)
-    package_costs = RENOVATION_PACKAGES[package]
+    package_costs = RENOVATION_PACKAGES[resolved_package]
 
     rows = []
 
