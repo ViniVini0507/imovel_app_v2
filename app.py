@@ -244,7 +244,12 @@ with tab_cockpit:
         """
     )
 
-    st.plotly_chart(portfolio_composition_chart(portfolio_df), use_container_width=True)
+    st.plotly_chart(
+    portfolio_composition_chart(portfolio_df),
+    use_container_width=True,
+    key="portfolio_chart_cockpit"
+)
+
     st.plotly_chart(risk_heatmap(risk), use_container_width=True)
 
 
@@ -283,7 +288,12 @@ with tab_investments:
     c2.metric("Expected portfolio", money(projected_cash_at_keys))
     c3.metric("Expected gain", money(investment_gain))
 
-    st.plotly_chart(portfolio_composition_chart(portfolio_df), use_container_width=True)
+    st.plotly_chart(
+    portfolio_composition_chart(portfolio_df),
+    use_container_width=True,
+    key="portfolio_chart_investments"
+)
+
 
     st.subheader("Monte Carlo Simulation")
     c4, c5, c6 = st.columns(3)
