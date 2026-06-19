@@ -1,23 +1,31 @@
-# Brazilian Real Estate Financial Planning Platform
+# Plataforma de Planejamento Financeiro Imobiliário
 
-Enterprise-grade Streamlit decision engine for buyers of off-plan apartments in Brazil.
+Motor de decisão em Streamlit para compradores de imóveis na planta no Brasil.
 
-## Features
+## Recursos
 
-- Construction phase cash flow
-- Construction evolution curves
-- SAC and PRICE financing engines
-- Dynamic investment allocation
-- Monthly compounding with tax impact
-- Monte Carlo portfolio simulation
-- Renovation and furniture planning
-- Decision engine at keys
-- Risk scoring system
-- Executive cockpit dashboard
-- Plotly visualizations
+- Fluxo de caixa da fase de construção
+- Curvas de evolução da obra
+- Motores de financiamento SAC e PRICE
+- Alocação dinâmica de investimentos
+- Capitalização mensal com impacto tributário
+- Simulação de portfólio com Monte Carlo
+- Planejamento de reforma e móveis
+- Motor de decisão na entrega das chaves
+- Sistema de pontuação de risco
+- Painel executivo
+- Visualizações com Plotly
 
-## Run
+## Como executar
 
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
+```
+
+## Tecnologias principais
+
+- Streamlit para a interface interativa
+- Plotly para visualizações
+- Pandas para análise de dados
+- NumPy para cálculos financeiros e simulações

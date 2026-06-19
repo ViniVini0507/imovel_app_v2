@@ -39,12 +39,12 @@ st.caption(
 
 
 with st.sidebar:
-    st.header("Planning Inputs")
+    st.header("Configurações")
 
     selected_profile_name = st.selectbox(
-        "Buyer profile",
+        "Perfil",
         list(PROFILES.keys()),
-        help="Choose a predefined real buyer profile.",
+        help="Selecione um perfil de comprador predefinido.",
     )
 
     profile = PROFILES[selected_profile_name]
@@ -52,30 +52,30 @@ with st.sidebar:
     st.divider()
 
     monthly_budget = st.number_input(
-        "Total monthly budget during construction",
+        "Orçamento total mensal durante a construção",
         min_value=0.0,
         value=float(4_000 if profile.name == "Vinicius & Ju" else 1_500),
         step=100.0,
-        help="Total amount available every month for construction costs and savings.",
+        help="Total acumulado disponível a cada mês para custos de construção e economias.",
     )
 
     minimum_saving_floor = st.number_input(
-        "Minimum monthly saving floor",
+        "Piso mínimo de economias mensais",
         min_value=0.0,
         value=float(1_000 if profile.name == "Vinicius & Ju" else 300),
         step=100.0,
-        help="Minimum savings forced every month even if spending exceeds the budget.",
+        help="Economias mínimas obrigatórias a cada mês mesmo se os gastos ultrapassarem o orçamento.",
     )
 
     construction_curve = st.selectbox(
-        "Construction evolution curve",
-        ["Linear", "S-Curve", "Back-loaded"],
+        "Curva de evolução de obra",
+        ["Linear", "Curva em S", "Acumulado no final"],
         index=1,
-        help="Controls how construction evolution grows until keys.",
+        help="Controla como a evolução da construção cresce até a entrega das chaves.",
     )
 
     annual_installment = st.number_input(
-        "Optional annual installment",
+        "Parcela anual opcional",
         min_value=0.0,
         value=0.0,
         step=500.0,
@@ -84,13 +84,13 @@ with st.sidebar:
     st.divider()
 
     renovation_package = st.selectbox(
-        "Renovation package",
-        ["Basic", "Recommended", "Premium"],
+        "Pacote de reforma",
+        ["Básico", "Recomendado", "Premium"],
         index=1,
     )
 
     annual_inflation = st.number_input(
-        "Renovation annual inflation",
+        "Inflação anual da reforma",
         min_value=0.0,
         value=0.045,
         step=0.005,
@@ -98,15 +98,15 @@ with st.sidebar:
     )
 
     monthly_living_expenses = st.number_input(
-        "Estimated monthly living expenses after keys",
+        "Despesas de vida mensais estimadas após as chaves",
         min_value=0.0,
         value=float(profile.household_income * 0.55),
         step=100.0,
-        help="Used to calculate emergency reserve requirements.",
+        help="Usado para calcular os requisitos de reserva de emergência.",
     )
 
     monte_carlo_runs = st.slider(
-        "Monte Carlo simulations",
+        "Simulações de Monte Carlo",
         min_value=1000,
         max_value=20000,
         value=5000,
@@ -181,8 +181,8 @@ best_strategy = strategies_df.iloc[0]
 
 tab_cockpit, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_decision, tab_risk, tab_data = st.tabs(
     [
-        "Cockpit",
-        "🏗️ Fluxo de Obr",
+        "Geral",
+        "🏗️ Fluxo de Obra",
         "💰 Investimentos",
         "🏦 Financiamento",
         "🛠️ Reforma",
@@ -195,32 +195,32 @@ tab_cockpit, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_d
 
 with tab_cockpit:
     section(
-        "Executive Cockpit",
-        "High-level financial position at keys and decision readiness.",
+        "Cockpit executivo",
+        "Posição financeira de alto nível às chaves e prontidão para decisão.",
     )
 
     c1, c2, c3, c4 = st.columns(4)
 
     c1.metric(
-        "Projected cash at keys",
+        "Valor projetado em caixa às chaves",
         money(projected_cash_at_keys),
-        help="Projected investment portfolio value at keys.",
+        help="Valor projetado do portfólio de investimentos às chaves.",
     )
 
     c2.metric(
-        "Investment gain",
+        "Ganhos de investimento",
         money(investment_gain),
-        help="Portfolio value minus total contributions.",
+        help="Valor do portfólio menos contribuições totais.",
     )
 
     c3.metric(
-        "Renovation coverage",
+        "Cobertura de reforma",
         pct(renovation_coverage),
-        help="Cash at keys divided by projected renovation cost.",
+        help="Caixa às chaves dividido pelo custo projetado de reforma.",
     )
 
     c4.metric(
-        "Risk score",
+        "Score de risco",
         f'{risk["overall"]["score"]}/100',
         status_badge(risk["overall"]["status"]),
     )
@@ -229,18 +229,18 @@ with tab_cockpit:
 
     c5, c6, c7 = st.columns(3)
 
-    c5.metric("Peak stress month", f"Month {peak_stress_month}")
-    c6.metric("Best strategy", best_strategy["Strategy"])
-    c7.metric("Monte Carlo P50", money(mc["p50"]))
+    c5.metric("Mês de pico de estresse", f"Mês {peak_stress_month}")
+    c6.metric("Melhor estratégia", best_strategy["Strategy"])
+    c7.metric("P50 do Monte Carlo", money(mc["p50"]))
 
     st.info(
         f"""
-        Recommended strategy: **{best_strategy["Strategy"]}**.
+        Estratégia recomendada: **{best_strategy["Strategy"]}**.
 
-        This strategy allocates approximately:
-        - {money(best_strategy["Emergency Reserve"])} to emergency reserve
-        - {money(best_strategy["Renovation"])} to renovation
-        - {money(best_strategy["Loan Amortization"])} to loan amortization
+        Essa estratégia aloca aproximadamente:
+        - {money(best_strategy["Emergency Reserve"])} para reserva de emergência
+        - {money(best_strategy["Renovation"])} para reforma
+        - {money(best_strategy["Loan Amortization"])} para amortização de empréstimo
         """
     )
 
@@ -262,8 +262,8 @@ st.plotly_chart(
 
 with tab_cashflow:
     section(
-        "Construction Phase Cash Flow",
-        "Tracks monthly construction evolution, forced savings, spending pressure, and accumulated savings.",
+        "Fase de construção - Fluxo de caixa",
+        "Rastreia a evolução mensal da construção, poupança forçada, pressão de gastos e poupança acumulada.",
     )
 
     st.plotly_chart(
@@ -290,15 +290,15 @@ with tab_cashflow:
 
 with tab_investments:
     section(
-        "Investment Engine",
-        "Dynamic glide-path allocation from balanced risk to ultra-conservative as keys approach.",
+        "Motor de investimento",
+        "Alocação dinâmica da estratégia de risco, passando de equilibrada para ultra-conservadora à medida que as chaves se aproximam.",
     )
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("Total contributed", money(total_contributed))
-    c2.metric("Expected portfolio", money(projected_cash_at_keys))
-    c3.metric("Expected gain", money(investment_gain))
-    
+    c1.metric("Total contribuído", money(total_contributed))
+    c2.metric("Portfólio esperado", money(projected_cash_at_keys))
+    c3.metric("Ganho esperado", money(investment_gain))
+
     st.plotly_chart(
             portfolio_composition_chart(portfolio_df),
             use_container_width=True,
@@ -307,7 +307,7 @@ with tab_investments:
 
 
 
-    st.subheader("Monte Carlo Simulation")
+    st.subheader("Simulação Monte Carlo")
     c4, c5, c6 = st.columns(3)
     c4.metric("P5", money(mc["p5"]))
     c5.metric("P50", money(mc["p50"]))
@@ -327,15 +327,15 @@ with tab_investments:
 
 with tab_financing:
     section(
-        "Financing Engine",
-        f"Full amortization table using {profile.financing_system}.",
+        "Mecanismo de financiamento",
+        f"Tabela completa de amortização usando {profile.financing_system}.",
     )
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Principal", money(profile.financing_ceiling))
-    c2.metric("Annual rate", pct(profile.annual_interest_rate))
-    c3.metric("Term", f"{profile.term_months} months")
-    c4.metric("First installment", money(amortization_df["Payment"].iloc[0]))
+    c2.metric("Taxa anual", pct(profile.annual_interest_rate))
+    c3.metric("Prazo", f"{profile.term_months} meses")
+    c4.metric("Primeira parcela", money(amortization_df["Payment"].iloc[0]))
 
     st.plotly_chart(
         amortization_chart(amortization_df),
@@ -357,13 +357,13 @@ with tab_financing:
 
 with tab_renovation:
     section(
-        "Renovation and Furniture Engine",
-        "Inflation-adjusted estimate by cost category and selected package.",
+        "Mecanismo de reforma e móveis",
+        "Estimativa ajustada pela inflação por categoria de custo e pacote selecionado.",
     )
 
     c1, c2 = st.columns(2)
-    c1.metric("Projected renovation cost", money(renovation_cost))
-    c2.metric("Package", renovation_package)
+    c1.metric("Custo projetado da reforma", money(renovation_cost))
+    c2.metric("Pacote", renovation_package)
 
     st.plotly_chart(
         renovation_pie_chart(renovation_df),
@@ -384,8 +384,8 @@ with tab_renovation:
 
 with tab_decision:
     section(
-        "Decision Engine at Keys",
-        "Ranks allocation strategies across renovation, emergency reserve, and loan amortization.",
+        "Motor de decisão na entrega das chaves",
+        "Classifica as estratégias de alocação entre reforma, reserva de emergência e amortização do empréstimo.",
     )
 
     st.plotly_chart(
@@ -413,8 +413,8 @@ with tab_decision:
 
 with tab_risk:
     section(
-        "Risk Scoring System",
-        "Combines income commitment, savings stress, and renovation coverage into a 0-100 score.",
+        "Sistema de pontuação de risco",
+        "Combina comprometimento da renda, estresse da poupança e cobertura da reforma em uma nota de 0 a 100.",
     )
 
     st.plotly_chart(
@@ -426,25 +426,25 @@ with tab_risk:
     c1, c2, c3, c4 = st.columns(4)
 
     c1.metric(
-        "Income commitment",
+        "Compromisso com a renda",
         pct(risk["income_commitment"]["ratio"]),
         status_badge(risk["income_commitment"]["status"]),
     )
 
     c2.metric(
-        "Savings stress",
+        "Estresse da poupança",
         f'{risk["savings_stress"]["score"]:.1f}/100',
         status_badge(risk["savings_stress"]["status"]),
     )
 
     c3.metric(
-        "Renovation coverage",
+        "Cobertura da reforma",
         pct(risk["renovation_coverage"]["coverage"]),
         status_badge(risk["renovation_coverage"]["status"]),
     )
 
     c4.metric(
-        "Overall risk",
+        "Risco geral",
         f'{risk["overall"]["score"]:.1f}/100',
         status_badge(risk["overall"]["status"]),
     )
@@ -452,21 +452,21 @@ with tab_risk:
 
 with tab_data:
     section(
-        "Model Data",
-        "Raw outputs for validation, auditability, and export.",
+        "Dados do modelo",
+        "Saídas brutas para validação, auditoria e exportação.",
     )
 
-    st.subheader("Selected Profile")
+    st.subheader("Perfil selecionado")
     st.json(profile.__dict__)
 
-    st.subheader("Construction Cash Flow")
+    st.subheader("Fluxo de caixa da construção")
     st.dataframe(construction_df, use_container_width=True)
 
-    st.subheader("Portfolio")
+    st.subheader("Portfólio")
     st.dataframe(portfolio_df, use_container_width=True)
 
-    st.subheader("Renovation")
+    st.subheader("Reforma")
     st.dataframe(renovation_df, use_container_width=True)
 
-    st.subheader("Decision Strategies")
+    st.subheader("Estratégias de decisão")
     st.dataframe(strategies_df, use_container_width=True)
