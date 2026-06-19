@@ -2,41 +2,94 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-def cashflow_stacked_chart(df):
+def cashflow_stacked_chart(df, renda=None):
+    import plotly.graph_objects as go
+
     fig = go.Figure()
 
-    fig.add_trace(go.Bar(
+    # ======================
+    # BARRAS STACKED
+    # ======================
+
+    fig.add_bar(
         x=df["Month"],
         y=df["Builder Installment"],
-        name="Prestação do construtor",
-    ))
+        name="Parcela Construtora",
+    )
 
-    fig.add_trace(go.Bar(
+    fig.add_bar(
         x=df["Month"],
         y=df["Construction Evolution"],
-        name="Evolução da obra",
-    ))
+        name="Evolução de Obra",
+    )
 
-    fig.add_trace(go.Bar(
+    fig.add_bar(
         x=df["Month"],
         y=df["Annual Installment"],
-        name="Parcela anual",
-    ))
+        name="Parcela Anual",
+    )
 
-    fig.add_trace(go.Scatter(
+    # ======================
+    # LINHA DE POUPANÇA
+    # ======================
+
+    fig.add_scatter(
         x=df["Month"],
         y=df["Monthly Savings"],
         mode="lines+markers",
-        name="Poupança mensal",
-    ))
+        name="Poupança Mensal",
+        line=dict(width=3)
+    )
+
+    # ======================
+    # TOTAL DO MÊS (linha invisível mas útil)
+    # ======================
+
+    total_mes = (
+        df["Builder Installment"] +
+        df["Construction Evolution"] +
+        df["Annual Installment"]
+    )
+
+    fig.add_scatter(
+        x=df["Month"],
+        y=total_mes,
+        mode="lines",
+        name="Total do Mês",
+        line=dict(dash="dot", width=2)
+    )
+
+    # ======================
+    # LINHAS DE RISCO
+    # ======================
+
+    if renda:
+        fig.add_hline(
+            y=renda * 0.30,
+            line_dash="dash",
+            line_color="yellow",
+            annotation_text="30% da renda"
+        )
+
+        fig.add_hline(
+            y=renda * 0.50,
+            line_dash="dash",
+            line_color="red",
+            annotation_text="50% da renda"
+        )
+
+    # ======================
+    # LAYOUT
+    # ======================
 
     fig.update_layout(
         barmode="stack",
-        title="Fluxo de caixa da fase de construção",
+        title="Composição Mensal e Pressão Financeira",
         xaxis_title="Mês",
-        yaxis_title="BRL",
-        template="plotly_white",
-        height=460,
+        yaxis_title="R$",
+        template="plotly_dark",
+        height=500,
+        hovermode="x unified"
     )
 
     return fig
