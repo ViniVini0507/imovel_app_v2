@@ -51,12 +51,17 @@ def cashflow_stacked_chart(df, renda=None):
         df["Annual Installment"]
     )
 
+    
+    colors = ["#16a34a" if x > 0 else "#dc2626" for x in df["Monthly Savings"]]
+
+
     fig.add_scatter(
         x=df["Month"],
-        y=total_mes,
-        mode="lines",
-        name="Total do Mês",
-        line=dict(dash="dot", width=2)
+        y=df["Monthly Savings"],
+        mode="lines+markers",
+        name="Poupança Mensal",
+        line=dict(width=3),
+        marker=dict(color=colors)
     )
 
     # ======================

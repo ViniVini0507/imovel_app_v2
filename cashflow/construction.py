@@ -6,7 +6,7 @@ def construction_evolution_curve(
     months: int,
     initial_value: float,
     curve_type: str,
-    final_multiplier: float = 1.65,
+    final_multiplier: float = 5.5,
 ) -> np.ndarray:
     if months <= 0:
         return np.array([])

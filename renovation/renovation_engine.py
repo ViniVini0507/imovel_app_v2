@@ -7,6 +7,7 @@ def estimate_renovation_cost(
     package: str,
     months_until_keys: int,
     annual_inflation: float,
+    num_ares = 3
 ) -> pd.DataFrame:
     package_aliases = {
         "Basic": "Basic",
@@ -31,11 +32,9 @@ def estimate_renovation_cost(
     rows = []
 
     for category, cost_per_m2 in package_costs.items():
-        if isinstance(cost_per_m2, dict):
-            if cost_per_m2["type"] == "per_m2":
-                base_cost = apartment_size_m2 * cost_per_m2["value"]
-            else:
-                base_cost = cost_per_m2["value"]
+        if category == "ac":
+            custo_unitario = 6000  # valor realista por split
+            base_cost = num_ares * custo_unitario
         else:
             base_cost = apartment_size_m2 * cost_per_m2
         inflated_cost = base_cost * inflation_factor

@@ -105,6 +105,13 @@ with st.sidebar:
         index=1,
     )
 
+    num_ares = st.number_input(
+        "Número de aparelhos de ar-condicionado",
+        min_value=0,
+        max_value=5,
+        value=3
+        )
+
     annual_inflation = st.number_input(
         "Inflação anual da reforma",
         min_value=0.0,
@@ -156,6 +163,7 @@ renovation_df = estimate_renovation_cost(
     package=renovation_package,
     months_until_keys=profile.months_until_keys,
     annual_inflation=annual_inflation,
+    num_ares=num_ares,
 )
 
 amortization_df = generate_amortization_schedule(
