@@ -4,16 +4,27 @@ import pandas as pd
 
 _CURVE_ALIASES = {
     "Linear": "Linear",
+    "linear": "Linear",
     "Curva linear": "Linear",
+    "curva linear": "Linear",
     "S-Curve": "S-Curve",
+    "s-curve": "S-Curve",
+    "S Curve": "S-Curve",
+    "s curve": "S-Curve",
     "Curva em S": "S-Curve",
+    "curva em s": "S-Curve",
     "Back-loaded": "Back-loaded",
+    "back-loaded": "Back-loaded",
+    "Back loaded": "Back-loaded",
+    "back loaded": "Back-loaded",
     "Acumulado no final": "Back-loaded",
+    "acumulado no final": "Back-loaded",
 }
 
 
 def _normalize_curve_type(curve_type: str) -> str:
-    return _CURVE_ALIASES.get(curve_type, curve_type)
+    normalized = str(curve_type).strip()
+    return _CURVE_ALIASES.get(normalized, normalized)
 
 
 def construction_evolution_curve(
@@ -30,8 +41,17 @@ def construction_evolution_curve(
     depois de `start_month`, e o crescimento é controlado com uma
     interpolação linear entre o valor inicial e o valor alvo.
     """
+    # Garante que valores vindos da UI ou do banco de dados sejam tratados
+    # de forma consistente mesmo quando chegam como tipos diferentes.
+    try:
+        months = int(months)
+        start_month = int(start_month)
+        initial_value = float(initial_value)
+        target_value = float(target_value) if target_value is not None else initial_value
+    except (TypeError, ValueError):
+        return np.zeros(0, dtype=float)
+
     curve_type = _normalize_curve_type(curve_type)
-    target_value = initial_value if target_value is None else target_value
 
     evolution = np.zeros(months, dtype=float)
 
@@ -80,6 +100,27 @@ def simulate_construction_phase(
     - se esse valor ficar abaixo do piso mínimo, o sistema força a poupança
       mínima e aumenta o gasto real para cobrir o déficit.
     """
+    try:
+        builder_installment = float(builder_installment)
+        initial_construction_evolution = float(initial_construction_evolution)
+        monthly_budget = float(monthly_budget)
+        minimum_saving_floor = float(minimum_saving_floor)
+        annual_installment = float(annual_installment)
+        evolution_start_month = int(evolution_start_month)
+        target_construction_evolution = (
+            float(target_construction_evolution)
+            if target_construction_evolution is not None
+            else initial_construction_evolution
+        )
+    except (TypeError, ValueError):
+        builder_installment = 0.0
+        initial_construction_evolution = 0.0
+        monthly_budget = 0.0
+        minimum_saving_floor = 0.0
+        annual_installment = 0.0
+        evolution_start_month = 1
+        target_construction_evolution = 0.0
+
     evolution = construction_evolution_curve(
         months=months,
         initial_value=initial_construction_evolution,
