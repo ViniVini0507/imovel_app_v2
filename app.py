@@ -298,7 +298,7 @@ with tab_cashflow:
     )
 
     st.plotly_chart(
-    cashflow_stacked_chart(construction_df),
+    cashflow_stacked_chart(construction_df, renda=profile.household_income),
     use_container_width=True,
     key="cashflow_chart"
     )
@@ -530,11 +530,17 @@ with tab_risk:
         status_badge(risk["savings_stress"]["status"]),
     )
 
+    renovation_coverage_ratio = float(
+        risk["renovation_coverage"]["coverage"]
+        if risk["renovation_coverage"]["coverage"] is not None
+        else 0
+    )
+
     c3.metric(
         "Cobertura da reforma",
-        pct(risk["renovation_coverage"]["coverage"]),
+        pct(renovation_coverage_ratio),
         status_badge(risk["renovation_coverage"]["status"]),
-        delta=f"{(renovation_coverage-1)*100:.1f}%"
+        delta=f"{(renovation_coverage_ratio - 1) * 100:.1f}%",
     )
 
     c4.metric(
