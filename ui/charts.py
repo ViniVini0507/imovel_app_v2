@@ -3,87 +3,86 @@ import plotly.graph_objects as go
 
 
 def cashflow_stacked_chart(df, renda=None):
-    import plotly.express as px
+    """
+    Desenha o esforço financeiro real do período de construção.
 
-    # ============================
-    # PREPARAÇÃO DOS DADOS
-    # ============================
+    A ordem da pilha é intencional:
+    1. Parcela do construtor (base)
+    2. Poupança (meio)
+    3. Evolução da obra (topo)
 
+    Isso permite visualizar o esforço mensal real sem confundir a poupança
+    com uma linha separada do fluxo de caixa.
+    """
     df_plot = df.copy()
 
-    df_plot["Parcela Construtora"] = df_plot["Builder Installment"]
-    df_plot["Poupança"] = df_plot["Poupança Gerada"]
-    df_plot["Evolução de Obra"] = df_plot["Construction Evolution"]
+    df_plot["Parcela do construtor"] = df_plot["Builder Installment"]
+    df_plot["Poupança"] = df_plot["Monthly Savings"]
+    df_plot["Evolução da obra"] = df_plot["Construction Evolution"]
 
-    # ============================
-    # GRÁFICO (IGUAL AO ANTIGO)
-    # ============================
+    fig = go.Figure()
 
-    fig = px.bar(
-        df_plot,
-        x="Month",
-        y=[
-            "Parcela Construtora",
-            "Poupança",
-            "Evolução de Obra"
-        ],
-        labels={"value": "Orçamento Mensal (R$)", "variable": "Composição"},
-        color_discrete_map={
-            "Parcela Construtora": "#4F79E6",
-            "Poupança": "#2ECC71",
-            "Evolução de Obra": "#FF6B3C",
-        }
-    )
+    fig.add_trace(go.Bar(
+        x=df_plot["Month"],
+        y=df_plot["Parcela do construtor"],
+        name="Parcela do construtor",
+        marker_color="#4F79E6",
+        hovertemplate="<b>Parcela do construtor</b><br>R$ %{y:,.2f}<extra></extra>",
+    ))
 
-    # ============================
-    # LINHAS DE RISCO
-    # ============================
+    fig.add_trace(go.Bar(
+        x=df_plot["Month"],
+        y=df_plot["Poupança"],
+        name="Poupança",
+        marker_color="#2ECC71",
+        hovertemplate="<b>Poupança</b><br>R$ %{y:,.2f}<extra></extra>",
+    ))
+
+    fig.add_trace(go.Bar(
+        x=df_plot["Month"],
+        y=df_plot["Evolução da obra"],
+        name="Evolução da obra",
+        marker_color="#FF6B3C",
+        hovertemplate="<b>Evolução da obra</b><br>R$ %{y:,.2f}<extra></extra>",
+    ))
+
+    # Linha invisível apenas para hover do total real do mês.
+    fig.add_trace(go.Scatter(
+        x=df_plot["Month"],
+        y=df_plot["Real Monthly Spending"],
+        mode="lines",
+        line=dict(color="rgba(0,0,0,0)"),
+        name="Gasto real total",
+        hovertemplate="<b>Gasto real total</b><br>R$ %{y:,.2f}<extra></extra>",
+        showlegend=False,
+    ))
 
     if renda:
         fig.add_hline(
             y=renda * 0.30,
             line_dash="dash",
-            line_color="yellow",
-            annotation_text="⚠️ 30% da renda",
-            annotation_position="top left"
+            line_color="#facc15",
+            annotation_text="30% da renda",
+            annotation_position="top left",
         )
 
         fig.add_hline(
             y=renda * 0.50,
             line_dash="dash",
-            line_color="red",
-            annotation_text="🚨 50% da renda",
-            annotation_position="top left"
+            line_color="#ef4444",
+            annotation_text="50% da renda",
+            annotation_position="top left",
         )
-
-    # ============================
-    # LINHA INVISÍVEL (TOTAL REAL)
-    # ============================
-
-    fig.add_scatter(
-        x=df_plot["Month"],
-        y=df_plot["Desembolso Real"],
-        mode="lines",
-        line=dict(color="rgba(0,0,0,0)"),
-        name="Total do Mês",
-        hovertemplate="<b>Total: R$ %{y:,.2f}</b>"
-    )
-
-    # ============================
-    # LAYOUT (IGUAL ANTIGO)
-    # ============================
 
     fig.update_layout(
         barmode="stack",
         xaxis_title="Meses até as chaves",
+        yaxis_title="Valor mensal (R$)",
         hovermode="x unified",
+        template="plotly_white",
         legend_title_text="",
-        template="plotly_dark"
-    )
-
-    fig.update_traces(
-        selector=dict(type='bar'),
-        hovertemplate="R$ %{y:,.2f}"
+        height=460,
+        margin=dict(l=10, r=10, t=10, b=10),
     )
 
     return fig
@@ -242,7 +241,12 @@ def strategy_score_chart(df):
         template="plotly_white",
     )
 
-    fig.update_layout(height=420, showlegend=False)
+    fig.update_layout(
+        height=420,
+        showlegend=False,
+        xaxis_title="Estratégia",
+        yaxis_title="Score total",
+    )
 
     return fig
 
@@ -281,6 +285,8 @@ def risk_heatmap(risk_dict):
         title="Mapa de calor do risco",
         template="plotly_white",
         height=280,
+        xaxis_title="Dimensão",
+        yaxis_title="",
     )
 
     return fig

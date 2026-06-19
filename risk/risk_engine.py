@@ -25,7 +25,11 @@ def score_income_commitment(first_installment: float, household_income: float) -
 
 
 def score_savings_stress(avg_stress_ratio: float, max_stress_ratio: float) -> dict:
-    penalty = 0
+    """
+    Avalia o estresse da poupança com base no excesso do esforço mensal
+    sobre o orçamento previsto.
+    """
+    penalty = 0.0
 
     penalty += max((avg_stress_ratio - 1) * 100, 0)
     penalty += max((max_stress_ratio - 1) * 150, 0)

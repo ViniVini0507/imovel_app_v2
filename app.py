@@ -154,33 +154,12 @@ construction_df = simulate_construction_phase(
     minimum_saving_floor=minimum_saving_floor,
     annual_installment=annual_installment,
     evolution_start_month=evolution_start_month,
+    target_construction_evolution=profile.approved_first_installment,
 )
 
-# ============================
-# RECRIANDO LÓGICA DO APP ANTIGO
-# ============================
-
-lista_poupanca = []
-lista_desembolso_real = []
-
-orcamento_alvo = monthly_budget
-poupanca_minima = minimum_saving_floor
-
-for custo in construction_df["Total Cost"]:
-    poupanca_projetada = orcamento_alvo - custo
-
-    if poupanca_projetada < poupanca_minima:
-        poupanca_real = poupanca_minima
-        desembolso_mensal = custo + poupanca_minima
-    else:
-        poupanca_real = poupanca_projetada
-        desembolso_mensal = orcamento_alvo
-
-    lista_poupanca.append(poupanca_real)
-    lista_desembolso_real.append(desembolso_mensal)
-
-construction_df["Poupança Gerada"] = lista_poupanca
-construction_df["Desembolso Real"] = lista_desembolso_real
+# Mantemos apenas os campos já calculados pelo modelo financeiro central.
+construction_df["Poupança Gerada"] = construction_df["Monthly Savings"]
+construction_df["Desembolso Real"] = construction_df["Real Monthly Spending"]
 
 
 portfolio_df = simulate_portfolio(
@@ -210,11 +189,13 @@ amortization_df = generate_amortization_schedule(
 )
 
 
-# Ajuste para refletir valores aprovados pela Caixa
+# Mantemos os pagamentos oficiais aprovados pela instituição financeira.
+# O cronograma gerado pela modelagem técnica é preservado, mas os extremos
+# do fluxo são sobrescritos para refletir os valores reais aprovados.
 amortization_df.loc[0, "Payment"] = profile.approved_first_installment
 
 if profile.approved_last_installment:
-    amortization_df.loc[len(amortization_df)-1, "Payment"] = profile.approved_last_installment
+    amortization_df.loc[len(amortization_df) - 1, "Payment"] = profile.approved_last_installment
 
 
 projected_cash_at_keys = float(portfolio_df["Total Portfolio"].iloc[-1])
