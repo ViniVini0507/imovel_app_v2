@@ -177,6 +177,16 @@ strategies_df = generate_decision_strategies(
 )
 
 best_strategy = strategies_df.iloc[0]
+strategy_display_labels = {
+    "Aggressive Amortization": "Amortização agressiva",
+    "Balanced": "Equilibrada",
+    "Safety First": "Prioridade de segurança",
+    "Quality of Life": "Qualidade de vida",
+}
+best_strategy_label = strategy_display_labels.get(
+    best_strategy["Strategy"],
+    best_strategy["Strategy"],
+)
 
 
 tab_cockpit, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_decision, tab_risk, tab_data = st.tabs(
@@ -230,12 +240,12 @@ with tab_cockpit:
     c5, c6, c7 = st.columns(3)
 
     c5.metric("Mês de pico de estresse", f"Mês {peak_stress_month}")
-    c6.metric("Melhor estratégia", best_strategy["Strategy"])
+    c6.metric("Melhor estratégia", best_strategy_label)
     c7.metric("P50 do Monte Carlo", money(mc["p50"]))
 
     st.info(
         f"""
-        Estratégia recomendada: **{best_strategy["Strategy"]}**.
+        Estratégia recomendada: **{best_strategy_label}**.
 
         Essa estratégia aloca aproximadamente:
         - {money(best_strategy["Emergency Reserve"])} para reserva de emergência
@@ -397,6 +407,14 @@ with tab_renovation:
         "Cost per m²": "Custo por m²",
         "Share": "Participação",
     })
+    renovation_display["Categoria"] = renovation_display["Categoria"].replace({
+        "Civil Work": "Obra civil",
+        "Cabinetry": "Móveis planejados",
+        "Appliances": "Eletrodomésticos",
+        "Lighting": "Iluminação",
+        "Ac": "Ar-condicionado",
+        "Decor": "Decoração",
+    })
 
     st.dataframe(
         renovation_display.style.format({
@@ -433,6 +451,12 @@ with tab_decision:
         "Safety Score": "Score de segurança",
         "Quality of Life Score": "Score de qualidade de vida",
         "Total Score": "Score total",
+    })
+    strategies_display["Estratégia"] = strategies_display["Estratégia"].replace({
+        "Aggressive Amortization": "Amortização agressiva",
+        "Balanced": "Equilibrada",
+        "Safety First": "Prioridade de segurança",
+        "Quality of Life": "Qualidade de vida",
     })
 
     st.dataframe(

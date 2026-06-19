@@ -108,8 +108,26 @@ def monte_carlo_histogram(values, p5, p50, p95):
 
 
 def renovation_pie_chart(df):
+    category_labels = {
+        "civil_work": "Obra civil",
+        "cabinetry": "Móveis planejados",
+        "appliances": "Eletrodomésticos",
+        "lighting": "Iluminação",
+        "ac": "Ar-condicionado",
+        "decor": "Decoração",
+        "Civil Work": "Obra civil",
+        "Cabinetry": "Móveis planejados",
+        "Appliances": "Eletrodomésticos",
+        "Lighting": "Iluminação",
+        "Ac": "Ar-condicionado",
+        "Decor": "Decoração",
+    }
+
+    chart_df = df.copy()
+    chart_df["Category"] = chart_df["Category"].map(category_labels).fillna(chart_df["Category"])
+
     fig = px.pie(
-        df,
+        chart_df,
         values="Inflated Cost",
         names="Category",
         title="Distribuição do custo da reforma",
@@ -158,8 +176,18 @@ def amortization_chart(df):
 
 
 def strategy_score_chart(df):
+    strategy_labels = {
+        "Aggressive Amortization": "Amortização agressiva",
+        "Balanced": "Equilibrada",
+        "Safety First": "Prioridade de segurança",
+        "Quality of Life": "Qualidade de vida",
+    }
+
+    chart_df = df.copy()
+    chart_df["Strategy"] = chart_df["Strategy"].map(strategy_labels).fillna(chart_df["Strategy"])
+
     fig = px.bar(
-        df,
+        chart_df,
         x="Strategy",
         y="Total Score",
         color="Strategy",
