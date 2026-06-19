@@ -7,46 +7,45 @@ def construction_evolution_curve(
     initial_value: float,
     curve_type: str,
     final_multiplier: float = 5.5,
-) -> np.ndarray:
-    if months <= 0:
-        return np.array([])
+    start_month: int = 1
+):
+    """
+    Generates construction evolution curve with delayed start.
 
-    normalized_curve_type = str(curve_type).strip()
-    aliases = {
-        "Linear": "Linear",
-        "linear": "Linear",
-        "S-Curve": "S-Curve",
-        "s-curve": "S-Curve",
-        "S Curve": "S-Curve",
-        "s curve": "S-Curve",
-        "Curva em S": "S-Curve",
-        "curva em s": "S-Curve",
-        "Back-loaded": "Back-loaded",
-        "back-loaded": "Back-loaded",
-        "Back loaded": "Back-loaded",
-        "back loaded": "Back-loaded",
-        "Acumulado no final": "Back-loaded",
-        "acumulado no final": "Back-loaded",
-    }
-    resolved_curve_type = aliases.get(normalized_curve_type, normalized_curve_type)
+    start_month:
+    - month when evolution actually begins
+    - before that → evolution = 0
+    """
 
     x = np.linspace(0, 1, months)
 
-    if resolved_curve_type == "Linear":
+    # curva base
+    if curve_type == "Linear":
         factors = 1 + (final_multiplier - 1) * x
 
-    elif resolved_curve_type == "S-Curve":
+    elif curve_type == "S-Curve":
         sigmoid = 1 / (1 + np.exp(-10 * (x - 0.5)))
         normalized = (sigmoid - sigmoid.min()) / (sigmoid.max() - sigmoid.min())
         factors = 1 + (final_multiplier - 1) * normalized
 
-    elif resolved_curve_type == "Back-loaded":
+    elif curve_type == "Back-loaded":
         factors = 1 + (final_multiplier - 1) * (x ** 2.2)
 
     else:
-        raise ValueError(f"Unknown curve type: {curve_type}")
+        raise ValueError("Unknown curve type")
 
-    return initial_value * factors
+    values = initial_value * factors
+
+    # ✅ AQUI ESTÁ O AJUSTE (início só depois)
+    evolution = []
+
+    for i in range(months):
+        if i + 1 < start_month:
+            evolution.append(0)
+        else:
+            evolution.append(values[i - start_month + 1])
+
+    return np.array(evolution)
 
 
 def simulate_construction_phase(
@@ -58,12 +57,14 @@ def simulate_construction_phase(
     minimum_saving_floor: float,
     annual_installment: float = 0,
     annual_installment_month: int = 12,
+    evolution_start_month: int = 1
 ) -> pd.DataFrame:
 
     evolution = construction_evolution_curve(
         months=months,
         initial_value=initial_construction_evolution,
         curve_type=curve_type,
+        start_month=evolution_start_month
     )
 
     rows = []

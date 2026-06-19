@@ -90,6 +90,14 @@ with st.sidebar:
         help="Controla como a evolução da construção cresce até a entrega das chaves.",
     )
 
+    evolution_start_month = st.number_input(
+        "Mês de início da evolução da obra",
+        min_value=1,
+        max_value=profile.months_until_keys,
+        value=8,
+        help="Define a partir de qual mês a evolução da obra começa a impactar os custos.",
+    )
+
     annual_installment = st.number_input(
         "Parcela anual opcional",
         min_value=0.0,
@@ -145,6 +153,7 @@ construction_df = simulate_construction_phase(
     monthly_budget=monthly_budget,
     minimum_saving_floor=minimum_saving_floor,
     annual_installment=annual_installment,
+    evolution_start_month=evolution_start_month,
 )
 
 # ============================
