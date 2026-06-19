@@ -31,7 +31,13 @@ def estimate_renovation_cost(
     rows = []
 
     for category, cost_per_m2 in package_costs.items():
-        base_cost = apartment_size_m2 * cost_per_m2
+        if isinstance(cost_per_m2, dict):
+            if cost_per_m2["type"] == "per_m2":
+                base_cost = apartment_size_m2 * cost_per_m2["value"]
+            else:
+                base_cost = cost_per_m2["value"]
+        else:
+            base_cost = apartment_size_m2 * cost_per_m2
         inflated_cost = base_cost * inflation_factor
 
         rows.append({
