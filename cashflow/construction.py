@@ -11,17 +11,36 @@ def construction_evolution_curve(
     if months <= 0:
         return np.array([])
 
+    normalized_curve_type = str(curve_type).strip()
+    aliases = {
+        "Linear": "Linear",
+        "linear": "Linear",
+        "S-Curve": "S-Curve",
+        "s-curve": "S-Curve",
+        "S Curve": "S-Curve",
+        "s curve": "S-Curve",
+        "Curva em S": "S-Curve",
+        "curva em s": "S-Curve",
+        "Back-loaded": "Back-loaded",
+        "back-loaded": "Back-loaded",
+        "Back loaded": "Back-loaded",
+        "back loaded": "Back-loaded",
+        "Acumulado no final": "Back-loaded",
+        "acumulado no final": "Back-loaded",
+    }
+    resolved_curve_type = aliases.get(normalized_curve_type, normalized_curve_type)
+
     x = np.linspace(0, 1, months)
 
-    if curve_type == "Linear":
+    if resolved_curve_type == "Linear":
         factors = 1 + (final_multiplier - 1) * x
 
-    elif curve_type == "S-Curve":
+    elif resolved_curve_type == "S-Curve":
         sigmoid = 1 / (1 + np.exp(-10 * (x - 0.5)))
         normalized = (sigmoid - sigmoid.min()) / (sigmoid.max() - sigmoid.min())
         factors = 1 + (final_multiplier - 1) * normalized
 
-    elif curve_type == "Back-loaded":
+    elif resolved_curve_type == "Back-loaded":
         factors = 1 + (final_multiplier - 1) * (x ** 2.2)
 
     else:
