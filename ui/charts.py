@@ -67,6 +67,10 @@ def portfolio_composition_chart(df):
 
 
 def monte_carlo_histogram(values, p5, p50, p95):
+    import numpy as np
+
+    mean_value = float(np.mean(values)) if len(values) else 0
+
     fig = px.histogram(
         x=values,
         nbins=60,
@@ -88,7 +92,11 @@ def monte_carlo_histogram(values, p5, p50, p95):
         height=460,
     )
 
-    fig.add_vline(x=mean, line_color="purple", annotation_text="Mean")
+    fig.add_vline(
+        x=mean_value,
+        line_color="purple",
+        annotation_text="Mean",
+    )
 
     return fig
 
