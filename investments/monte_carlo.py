@@ -28,7 +28,7 @@ def simulate_monte_carlo(
                 vol_monthly = asset.annual_volatility / np.sqrt(12)
 
                 sampled_return = rng.normal(mean_monthly, vol_monthly)
-                after_tax_return = sampled_return * (1 - asset.tax_rate)
+                after_tax_return = (1 + sampled_return) ** (1 - asset.tax_rate) - 1
 
                 balances[asset_key] = (
                     balances[asset_key] * (1 + after_tax_return)

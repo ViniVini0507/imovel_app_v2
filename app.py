@@ -24,7 +24,7 @@ from ui.charts import (
 
 
 st.set_page_config(
-    page_title="Brazil Real Estate Financial Planner",
+    page_title="Real Estate Financial Planner",
     page_icon="🏢",
     layout="wide",
 )

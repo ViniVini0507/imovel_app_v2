@@ -6,14 +6,20 @@ def apply_global_styles():
         """
         <style>
         .main {
-            background-color: #f7f9fc;
+            background-color: #f4f6fb;
         }
+
+        h1, h2, h3 {
+            font-weight: 600;
+        }
+
+
 
         div[data-testid="metric-container"] {
             background-color: white;
             border: 1px solid #e6e8ef;
             padding: 18px;
-            border-radius: 16px;
+            border-radius: 14px;
             box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
         }
 

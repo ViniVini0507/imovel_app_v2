@@ -87,7 +87,7 @@ def generate_decision_strategies(
             100,
             45
             + 300 * (loan_amortization / outstanding_balance if outstanding_balance > 0 else 0)
-            + 80 * financing_annual_rate,
+            + 50 * financing_annual_rate,
         )
 
         safety_score = min(100, reserve_coverage_months / 6 * 100)

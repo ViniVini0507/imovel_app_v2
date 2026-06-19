@@ -88,6 +88,8 @@ def monte_carlo_histogram(values, p5, p50, p95):
         height=460,
     )
 
+    fig.add_vline(x=mean, line_color="purple", annotation_text="Mean")
+
     return fig
 
 
