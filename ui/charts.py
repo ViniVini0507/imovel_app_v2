@@ -8,7 +8,7 @@ def cashflow_stacked_chart(df, renda=None):
     fig = go.Figure()
 
     # ======================
-    # BARRAS STACKED
+    # STACK COMPLETO (INCLUI POUPANÇA)
     # ======================
 
     fig.add_bar(
@@ -29,39 +29,33 @@ def cashflow_stacked_chart(df, renda=None):
         name="Parcela Anual",
     )
 
-    # ======================
-    # LINHA DE POUPANÇA
-    # ======================
+    # ✅ AGORA POUPANÇA ENTRA NO STACK
+    colors = ["#16a34a" if x >= 0 else "#dc2626" for x in df["Monthly Savings"]]
 
-    fig.add_scatter(
-        x=df["Month"],
-        y=df["Monthly Savings"],
-        mode="lines+markers",
-        name="Poupança Mensal",
-        line=dict(width=3)
-    )
+    #fig.add_bar(
+     #   x=df["Month"],
+      #  y=df["Monthly Savings"],
+       # name="Poupança",
+       # marker_color=colors
+    #)
 
     # ======================
-    # TOTAL DO MÊS (linha invisível mas útil)
+    # LINHA TOTAL REAL (IMPORTANTE)
     # ======================
 
-    total_mes = (
+    total = (
         df["Builder Installment"] +
         df["Construction Evolution"] +
-        df["Annual Installment"]
+        df["Annual Installment"] +
+        df["Monthly Savings"]
     )
-
-    
-    colors = ["#16a34a" if x > 0 else "#dc2626" for x in df["Monthly Savings"]]
-
 
     fig.add_scatter(
         x=df["Month"],
-        y=df["Monthly Savings"],
-        mode="lines+markers",
-        name="Poupança Mensal",
-        line=dict(width=3),
-        marker=dict(color=colors)
+        y=total,
+        mode="lines",
+        name="Total mensal",
+        line=dict(color="white", width=2, dash="dot")
     )
 
     # ======================
@@ -73,14 +67,16 @@ def cashflow_stacked_chart(df, renda=None):
             y=renda * 0.30,
             line_dash="dash",
             line_color="yellow",
-            annotation_text="30% da renda"
+            annotation_text="30% da renda",
+            annotation_position="top left"
         )
 
         fig.add_hline(
             y=renda * 0.50,
             line_dash="dash",
             line_color="red",
-            annotation_text="50% da renda"
+            annotation_text="50% da renda",
+            annotation_position="top left"
         )
 
     # ======================
@@ -89,11 +85,17 @@ def cashflow_stacked_chart(df, renda=None):
 
     fig.update_layout(
         barmode="stack",
-        title="Composição Mensal e Pressão Financeira",
-        xaxis_title="Mês",
+        title="Composição Mensal Completa (Custos + Poupança)",
+        xaxis_title="Meses até as chaves",
         yaxis_title="R$",
         template="plotly_dark",
-        height=500,
+        height=520,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            x=0
+        ),
         hovermode="x unified"
     )
 

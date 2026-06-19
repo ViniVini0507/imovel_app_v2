@@ -173,6 +173,14 @@ amortization_df = generate_amortization_schedule(
     term_months=profile.term_months,
 )
 
+
+# Ajuste para refletir valores aprovados pela Caixa
+amortization_df.loc[0, "Payment"] = profile.approved_first_installment
+
+if profile.approved_last_installment:
+    amortization_df.loc[len(amortization_df)-1, "Payment"] = profile.approved_last_installment
+
+
 projected_cash_at_keys = float(portfolio_df["Total Portfolio"].iloc[-1])
 total_contributed = float(portfolio_df["Total Contributed"].iloc[-1])
 investment_gain = float(portfolio_df["Investment Gain"].iloc[-1])
