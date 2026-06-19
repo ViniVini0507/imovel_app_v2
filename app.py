@@ -244,13 +244,20 @@ with tab_cockpit:
         """
     )
 
-    st.plotly_chart(
+    
+st.plotly_chart(
     portfolio_composition_chart(portfolio_df),
     use_container_width=True,
-    key="portfolio_chart_cockpit"
-)
+    key="portfolio_cockpit"
+    )   
 
-    st.plotly_chart(risk_heatmap(risk), use_container_width=True)
+
+st.plotly_chart(
+    risk_heatmap(risk),
+    use_container_width=True,
+    key="risk_heatmap_cockpit"
+    )
+
 
 
 with tab_cashflow:
@@ -259,7 +266,11 @@ with tab_cashflow:
         "Tracks monthly construction evolution, forced savings, spending pressure, and accumulated savings.",
     )
 
-    st.plotly_chart(cashflow_stacked_chart(construction_df), use_container_width=True)
+    st.plotly_chart(
+    cashflow_stacked_chart(construction_df),
+    use_container_width=True,
+    key="cashflow_chart"
+    )
 
     st.dataframe(
         construction_df.style.format({
@@ -287,12 +298,13 @@ with tab_investments:
     c1.metric("Total contributed", money(total_contributed))
     c2.metric("Expected portfolio", money(projected_cash_at_keys))
     c3.metric("Expected gain", money(investment_gain))
-
+    
     st.plotly_chart(
-    portfolio_composition_chart(portfolio_df),
-    use_container_width=True,
-    key="portfolio_chart_investments"
-)
+            portfolio_composition_chart(portfolio_df),
+            use_container_width=True,
+            key="portfolio_investments"
+    )
+
 
 
     st.subheader("Monte Carlo Simulation")
@@ -309,6 +321,7 @@ with tab_investments:
             mc["p95"],
         ),
         use_container_width=True,
+        key="monte_carlo_chart"
     )
 
 
@@ -324,7 +337,11 @@ with tab_financing:
     c3.metric("Term", f"{profile.term_months} months")
     c4.metric("First installment", money(amortization_df["Payment"].iloc[0]))
 
-    st.plotly_chart(amortization_chart(amortization_df), use_container_width=True)
+    st.plotly_chart(
+        amortization_chart(amortization_df),
+        use_container_width=True,
+        key="amortization_chart"
+    )
 
     st.dataframe(
         amortization_df.style.format({
@@ -348,7 +365,11 @@ with tab_renovation:
     c1.metric("Projected renovation cost", money(renovation_cost))
     c2.metric("Package", renovation_package)
 
-    st.plotly_chart(renovation_pie_chart(renovation_df), use_container_width=True)
+    st.plotly_chart(
+        renovation_pie_chart(renovation_df),
+        use_container_width=True,
+        key="renovation_chart"
+        )
 
     st.dataframe(
         renovation_df.style.format({
@@ -367,7 +388,11 @@ with tab_decision:
         "Ranks allocation strategies across renovation, emergency reserve, and loan amortization.",
     )
 
-    st.plotly_chart(strategy_score_chart(strategies_df), use_container_width=True)
+    st.plotly_chart(
+        strategy_score_chart(strategies_df),
+        use_container_width=True,
+        key="strategy_chart"
+        )
 
     st.dataframe(
         strategies_df.style.format({
@@ -392,7 +417,11 @@ with tab_risk:
         "Combines income commitment, savings stress, and renovation coverage into a 0-100 score.",
     )
 
-    st.plotly_chart(risk_heatmap(risk), use_container_width=True)
+    st.plotly_chart(
+        risk_heatmap(risk),
+        use_container_width=True,
+        key="risk_heatmap_tab"
+        )
 
     c1, c2, c3, c4 = st.columns(4)
 
