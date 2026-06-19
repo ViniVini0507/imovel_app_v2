@@ -11,9 +11,9 @@ def pct(value: float) -> str:
 
 def status_badge(status: str) -> str:
     return {
-        "green": "🟢 Green",
-        "yellow": "🟡 Yellow",
-        "red": "🔴 Red",
+        "green": "🟢 Verde",
+        "yellow": "🟡 Amarelo",
+        "red": "🔴 Vermelho",
     }.get(status, status)
 
 

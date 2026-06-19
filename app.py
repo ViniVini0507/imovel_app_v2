@@ -196,7 +196,7 @@ tab_cockpit, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_d
 with tab_cockpit:
     section(
         "Cockpit executivo",
-        "Posição financeira de alto nível às chaves e prontidão para decisão.",
+        "Visão geral da posição financeira na entrega das chaves e da prontidão para decidir.",
     )
 
     c1, c2, c3, c4 = st.columns(4)
@@ -259,8 +259,8 @@ with tab_cockpit:
 
 with tab_cashflow:
     section(
-        "Fase de construção - Fluxo de caixa",
-        "Rastreia a evolução mensal da construção, poupança forçada, pressão de gastos e poupança acumulada.",
+        "Fase de construção — fluxo de caixa",
+        "Acompanha a evolução mensal da obra, a poupança obrigatória, a pressão de gastos e o saldo acumulado.",
     )
 
     st.plotly_chart(
@@ -269,17 +269,30 @@ with tab_cashflow:
     key="cashflow_chart"
     )
 
+    construction_display = construction_df.rename(columns={
+        "Month": "Mês",
+        "Builder Installment": "Prestação do construtor",
+        "Construction Evolution": "Evolução da obra",
+        "Annual Installment": "Parcela anual",
+        "Total Cost": "Custo total",
+        "Monthly Savings": "Poupança mensal",
+        "Accumulated Savings": "Poupança acumulada",
+        "Real Monthly Spending": "Gasto real mensal",
+        "Stress Amount": "Valor de estresse",
+        "Stress Ratio": "Razão de estresse",
+    })
+
     st.dataframe(
-        construction_df.style.format({
-            "Builder Installment": "R$ {:,.2f}",
-            "Construction Evolution": "R$ {:,.2f}",
-            "Annual Installment": "R$ {:,.2f}",
-            "Total Cost": "R$ {:,.2f}",
-            "Monthly Savings": "R$ {:,.2f}",
-            "Accumulated Savings": "R$ {:,.2f}",
-            "Real Monthly Spending": "R$ {:,.2f}",
-            "Stress Amount": "R$ {:,.2f}",
-            "Stress Ratio": "{:.2f}",
+        construction_display.style.format({
+            "Prestação do construtor": "R$ {:,.2f}",
+            "Evolução da obra": "R$ {:,.2f}",
+            "Parcela anual": "R$ {:,.2f}",
+            "Custo total": "R$ {:,.2f}",
+            "Poupança mensal": "R$ {:,.2f}",
+            "Poupança acumulada": "R$ {:,.2f}",
+            "Gasto real mensal": "R$ {:,.2f}",
+            "Valor de estresse": "R$ {:,.2f}",
+            "Razão de estresse": "{:.2f}",
         }),
         use_container_width=True,
     )
@@ -287,8 +300,8 @@ with tab_cashflow:
 
 with tab_investments:
     section(
-        "Motor de investimento",
-        "Alocação dinâmica da estratégia de risco, passando de equilibrada para ultra-conservadora à medida que as chaves se aproximam.",
+        "Investimentos",
+        "Alocação dinâmica da estratégia de risco, passando de equilibrada para ultra-conservadora conforme a entrega se aproxima.",
     )
 
     c1, c2, c3 = st.columns(3)
@@ -324,8 +337,8 @@ with tab_investments:
 
 with tab_financing:
     section(
-        "Mecanismo de financiamento",
-        f"Tabela completa de amortização usando {profile.financing_system}.",
+        "Financiamento",
+        f"Tabela completa de amortização com o sistema {profile.financing_system}.",
     )
 
     c1, c2, c3, c4 = st.columns(4)
@@ -340,13 +353,22 @@ with tab_financing:
         key="amortization_chart"
     )
 
+    amortization_display = amortization_df.rename(columns={
+        "Month": "Mês",
+        "Opening Balance": "Saldo inicial",
+        "Interest": "Juros",
+        "Amortization": "Amortização",
+        "Payment": "Parcela",
+        "Ending Balance": "Saldo final",
+    })
+
     st.dataframe(
-        amortization_df.style.format({
-            "Opening Balance": "R$ {:,.2f}",
-            "Interest": "R$ {:,.2f}",
-            "Amortization": "R$ {:,.2f}",
-            "Payment": "R$ {:,.2f}",
-            "Ending Balance": "R$ {:,.2f}",
+        amortization_display.style.format({
+            "Saldo inicial": "R$ {:,.2f}",
+            "Juros": "R$ {:,.2f}",
+            "Amortização": "R$ {:,.2f}",
+            "Parcela": "R$ {:,.2f}",
+            "Saldo final": "R$ {:,.2f}",
         }),
         use_container_width=True,
     )
@@ -354,7 +376,7 @@ with tab_financing:
 
 with tab_renovation:
     section(
-        "Mecanismo de reforma e móveis",
+        "Reforma e móveis",
         "Estimativa ajustada pela inflação por categoria de custo e pacote selecionado.",
     )
 
@@ -368,12 +390,20 @@ with tab_renovation:
         key="renovation_chart"
         )
 
+    renovation_display = renovation_df.rename(columns={
+        "Category": "Categoria",
+        "Base Cost": "Custo base",
+        "Inflated Cost": "Custo inflado",
+        "Cost per m²": "Custo por m²",
+        "Share": "Participação",
+    })
+
     st.dataframe(
-        renovation_df.style.format({
-            "Base Cost": "R$ {:,.2f}",
-            "Inflated Cost": "R$ {:,.2f}",
-            "Cost per m²": "R$ {:,.2f}",
-            "Share": "{:.1%}",
+        renovation_display.style.format({
+            "Custo base": "R$ {:,.2f}",
+            "Custo inflado": "R$ {:,.2f}",
+            "Custo por m²": "R$ {:,.2f}",
+            "Participação": "{:.1%}",
         }),
         use_container_width=True,
     )
@@ -381,8 +411,8 @@ with tab_renovation:
 
 with tab_decision:
     section(
-        "Motor de decisão na entrega das chaves",
-        "Classifica as estratégias de alocação entre reforma, reserva de emergência e amortização do empréstimo.",
+        "Estratégia na entrega das chaves",
+        "Classifica as opções de uso do caixa entre reforma, reserva de emergência e amortização do empréstimo.",
     )
 
     st.plotly_chart(
@@ -391,18 +421,32 @@ with tab_decision:
         key="strategy_chart"
         )
 
+    strategies_display = strategies_df.rename(columns={
+        "Strategy": "Estratégia",
+        "Emergency Reserve": "Reserva de emergência",
+        "Renovation": "Reforma",
+        "Loan Amortization": "Amortização do empréstimo",
+        "Idle Cash": "Caixa ocioso",
+        "Renovation Coverage": "Cobertura da reforma",
+        "Reserve Months": "Meses de reserva",
+        "Financial Score": "Score financeiro",
+        "Safety Score": "Score de segurança",
+        "Quality of Life Score": "Score de qualidade de vida",
+        "Total Score": "Score total",
+    })
+
     st.dataframe(
-        strategies_df.style.format({
-            "Emergency Reserve": "R$ {:,.2f}",
-            "Renovation": "R$ {:,.2f}",
-            "Loan Amortization": "R$ {:,.2f}",
-            "Idle Cash": "R$ {:,.2f}",
-            "Renovation Coverage": "{:.1%}",
-            "Reserve Months": "{:.1f}",
-            "Financial Score": "{:.1f}",
-            "Safety Score": "{:.1f}",
-            "Quality of Life Score": "{:.1f}",
-            "Total Score": "{:.1f}",
+        strategies_display.style.format({
+            "Reserva de emergência": "R$ {:,.2f}",
+            "Reforma": "R$ {:,.2f}",
+            "Amortização do empréstimo": "R$ {:,.2f}",
+            "Caixa ocioso": "R$ {:,.2f}",
+            "Cobertura da reforma": "{:.1%}",
+            "Meses de reserva": "{:.1f}",
+            "Score financeiro": "{:.1f}",
+            "Score de segurança": "{:.1f}",
+            "Score de qualidade de vida": "{:.1f}",
+            "Score total": "{:.1f}",
         }),
         use_container_width=True,
     )
@@ -410,7 +454,7 @@ with tab_decision:
 
 with tab_risk:
     section(
-        "Sistema de pontuação de risco",
+        "Avaliação de risco",
         "Combina comprometimento da renda, estresse da poupança e cobertura da reforma em uma nota de 0 a 100.",
     )
 

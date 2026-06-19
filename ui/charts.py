@@ -8,32 +8,32 @@ def cashflow_stacked_chart(df):
     fig.add_trace(go.Bar(
         x=df["Month"],
         y=df["Builder Installment"],
-        name="Builder Installment",
+        name="Prestação do construtor",
     ))
 
     fig.add_trace(go.Bar(
         x=df["Month"],
         y=df["Construction Evolution"],
-        name="Construction Evolution",
+        name="Evolução da obra",
     ))
 
     fig.add_trace(go.Bar(
         x=df["Month"],
         y=df["Annual Installment"],
-        name="Annual Installment",
+        name="Parcela anual",
     ))
 
     fig.add_trace(go.Scatter(
         x=df["Month"],
         y=df["Monthly Savings"],
         mode="lines+markers",
-        name="Monthly Savings",
+        name="Poupança mensal",
     ))
 
     fig.update_layout(
         barmode="stack",
-        title="Construction Phase Cash Flow",
-        xaxis_title="Month",
+        title="Fluxo de caixa da fase de construção",
+        xaxis_title="Mês",
         yaxis_title="BRL",
         template="plotly_white",
         height=460,
@@ -44,6 +44,12 @@ def cashflow_stacked_chart(df):
 
 def portfolio_composition_chart(df):
     asset_cols = ["Liquidity", "PostFixed", "TaxFree", "ControlledRisk"]
+    labels = {
+        "Liquidity": "Liquidez",
+        "PostFixed": "Pós-fixado",
+        "TaxFree": "Isento de IR",
+        "ControlledRisk": "Risco controlado",
+    }
 
     fig = go.Figure()
 
@@ -52,12 +58,12 @@ def portfolio_composition_chart(df):
             x=df["Month"],
             y=df[col],
             stackgroup="one",
-            name=col,
+            name=labels.get(col, col),
         ))
 
     fig.update_layout(
-        title="Portfolio Composition Over Time",
-        xaxis_title="Month",
+        title="Composição do portfólio ao longo do tempo",
+        xaxis_title="Mês",
         yaxis_title="BRL",
         template="plotly_white",
         height=460,
@@ -74,7 +80,7 @@ def monte_carlo_histogram(values, p5, p50, p95):
     fig = px.histogram(
         x=values,
         nbins=60,
-        title="Monte Carlo Distribution - Cash at Keys",
+        title="Distribuição Monte Carlo - caixa nas chaves",
         template="plotly_white",
     )
 
@@ -87,15 +93,15 @@ def monte_carlo_histogram(values, p5, p50, p95):
         )
 
     fig.update_layout(
-        xaxis_title="Projected Portfolio Value",
-        yaxis_title="Frequency",
+        xaxis_title="Valor projetado do portfólio",
+        yaxis_title="Frequência",
         height=460,
     )
 
     fig.add_vline(
         x=mean_value,
         line_color="purple",
-        annotation_text="Mean",
+        annotation_text="Média",
     )
 
     return fig
@@ -106,7 +112,7 @@ def renovation_pie_chart(df):
         df,
         values="Inflated Cost",
         names="Category",
-        title="Renovation Cost Breakdown",
+        title="Distribuição do custo da reforma",
         hole=0.42,
         template="plotly_white",
     )
@@ -122,27 +128,27 @@ def amortization_chart(df):
     fig.add_trace(go.Scatter(
         x=df["Month"],
         y=df["Payment"],
-        name="Payment",
+        name="Parcela",
         mode="lines",
     ))
 
     fig.add_trace(go.Scatter(
         x=df["Month"],
         y=df["Interest"],
-        name="Interest",
+        name="Juros",
         mode="lines",
     ))
 
     fig.add_trace(go.Scatter(
         x=df["Month"],
         y=df["Amortization"],
-        name="Amortization",
+        name="Amortização",
         mode="lines",
     ))
 
     fig.update_layout(
-        title="Financing Schedule",
-        xaxis_title="Month",
+        title="Cronograma de financiamento",
+        xaxis_title="Mês",
         yaxis_title="BRL",
         template="plotly_white",
         height=460,
@@ -157,7 +163,7 @@ def strategy_score_chart(df):
         x="Strategy",
         y="Total Score",
         color="Strategy",
-        title="Decision Strategy Ranking",
+        title="Ranking das estratégias",
         template="plotly_white",
     )
 
@@ -168,10 +174,10 @@ def strategy_score_chart(df):
 
 def risk_heatmap(risk_dict):
     labels = [
-        "Income Commitment",
-        "Savings Stress",
-        "Renovation Coverage",
-        "Overall",
+        "Compromisso com a renda",
+        "Estresse da poupança",
+        "Cobertura da reforma",
+        "Geral",
     ]
 
     values = [
@@ -184,7 +190,7 @@ def risk_heatmap(risk_dict):
     fig = go.Figure(data=go.Heatmap(
         z=[values],
         x=labels,
-        y=["Risk Score"],
+        y=["Pontuação de risco"],
         colorscale=[
             [0, "#dc2626"],
             [0.5, "#facc15"],
@@ -197,7 +203,7 @@ def risk_heatmap(risk_dict):
     ))
 
     fig.update_layout(
-        title="Risk Score Heatmap",
+        title="Mapa de calor do risco",
         template="plotly_white",
         height=280,
     )
