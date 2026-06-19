@@ -244,20 +244,17 @@ with tab_cockpit:
         """
     )
 
-    
-st.plotly_chart(
-    portfolio_composition_chart(portfolio_df),
-    use_container_width=True,
-    key="portfolio_cockpit"
-    )   
-
-
-st.plotly_chart(
-    risk_heatmap(risk),
-    use_container_width=True,
-    key="risk_heatmap_cockpit"
+    st.plotly_chart(
+        portfolio_composition_chart(portfolio_df),
+        use_container_width=True,
+        key="portfolio_cockpit",
     )
 
+    st.plotly_chart(
+        risk_heatmap(risk),
+        use_container_width=True,
+        key="risk_heatmap_cockpit",
+    )
 
 
 with tab_cashflow:
