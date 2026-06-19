@@ -24,7 +24,7 @@ from ui.charts import (
 
 
 st.set_page_config(
-    page_title="Real Estate Financial Planner",
+    page_title="Planejamento Financeiro Imobiliário",
     page_icon="🏢",
     layout="wide",
 )
@@ -32,9 +32,9 @@ st.set_page_config(
 apply_global_styles()
 
 
-st.title("🏢 Real Estate Financial Planning Cockpit")
+st.title("🏢 Planejamento Financeiro Imobiliário")
 st.caption(
-    "Enterprise-grade decision engine for Brazilian off-plan apartment buyers."
+    "Motor de decisão financeira completo para compra de imóvel na planta."
 )
 
 
@@ -182,13 +182,13 @@ best_strategy = strategies_df.iloc[0]
 tab_cockpit, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_decision, tab_risk, tab_data = st.tabs(
     [
         "Cockpit",
-        "Construction Cash Flow",
-        "Investments",
-        "Financing",
-        "Renovation",
-        "Decision Engine",
-        "Risk",
-        "Data",
+        "🏗️ Fluxo de Obr",
+        "💰 Investimentos",
+        "🏦 Financiamento",
+        "🛠️ Reforma",
+        "🧠 Estratégia",
+        "⚠️ Risco",
+        "📁 Dados",
     ]
 )
 
