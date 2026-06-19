@@ -70,7 +70,7 @@ with st.sidebar:
     monthly_budget = st.number_input(
         "Orçamento total mensal durante a construção",
         min_value=0.0,
-        value=float(4_000 if profile.name == "Vinicius & Ju" else 1_500),
+        value=float(6_000 if profile.name == "Vinicius & Ju" else 1_500),
         step=100.0,
         help="Total acumulado disponível a cada mês para custos de construção e economias.",
     )
@@ -555,8 +555,10 @@ with tab_risk:
     c3.metric(
         "Cobertura da reforma",
         pct(renovation_coverage_ratio),
-        status_badge(risk["renovation_coverage"]["status"]),
-        delta=f"{(renovation_coverage_ratio - 1) * 100:.1f}%",
+        delta=(
+            f"{(renovation_coverage_ratio - 1) * 100:.1f}% "
+            f"({status_badge(risk['renovation_coverage']['status'])})"
+        ),
     )
 
     c4.metric(
