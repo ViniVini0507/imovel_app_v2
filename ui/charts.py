@@ -3,71 +3,48 @@ import plotly.graph_objects as go
 
 
 def cashflow_stacked_chart(df, renda=None):
-    import plotly.graph_objects as go
+    import plotly.express as px
 
-    fig = go.Figure()
+    # ============================
+    # PREPARAÇÃO DOS DADOS
+    # ============================
 
-    # ======================
-    # STACK COMPLETO (INCLUI POUPANÇA)
-    # ======================
+    df_plot = df.copy()
 
-    fig.add_bar(
-        x=df["Month"],
-        y=df["Builder Installment"],
-        name="Parcela Construtora",
+    df_plot["Parcela Construtora"] = df_plot["Builder Installment"]
+    df_plot["Poupança"] = df_plot["Poupança Gerada"]
+    df_plot["Evolução de Obra"] = df_plot["Construction Evolution"]
+
+    # ============================
+    # GRÁFICO (IGUAL AO ANTIGO)
+    # ============================
+
+    fig = px.bar(
+        df_plot,
+        x="Month",
+        y=[
+            "Parcela Construtora",
+            "Poupança",
+            "Evolução de Obra"
+        ],
+        labels={"value": "Orçamento Mensal (R$)", "variable": "Composição"},
+        color_discrete_map={
+            "Parcela Construtora": "#4F79E6",
+            "Poupança": "#2ECC71",
+            "Evolução de Obra": "#FF6B3C",
+        }
     )
 
-    fig.add_bar(
-        x=df["Month"],
-        y=df["Construction Evolution"],
-        name="Evolução de Obra",
-    )
-
-    fig.add_bar(
-        x=df["Month"],
-        y=df["Annual Installment"],
-        name="Parcela Anual",
-    )
-
-    # ✅ AGORA POUPANÇA ENTRA NO STACK
-    colors = ["#16a34a" if x >= 0 else "#dc2626" for x in df["Monthly Savings"]]
-
-    #fig.add_bar(
-     #   x=df["Month"],
-      #  y=df["Monthly Savings"],
-       # name="Poupança",
-       # marker_color=colors
-    #)
-
-    # ======================
-    # LINHA TOTAL REAL (IMPORTANTE)
-    # ======================
-
-    total = (
-        df["Builder Installment"] +
-        df["Construction Evolution"] +
-        df["Annual Installment"] +
-        df["Monthly Savings"]
-    )
-
-    fig.add_scatter(
-        x=df["Month"],
-        y=total,
-        mode="lines",
-        name="Total mensal",
-        line=dict(color="white", width=2, dash="dot")
-    )
-
-    # ======================
+    # ============================
     # LINHAS DE RISCO
-    # ======================
+    # ============================
 
     if renda:
         fig.add_hline(
             y=renda * 0.30,
             line_dash="dash",
             line_color="yellow",
-            annotation_text="30% da renda",
+            annotation_text="⚠️ 30% da renda",
             annotation_position="top left"
         )
 
@@ -75,28 +52,38 @@ def cashflow_stacked_chart(df, renda=None):
             y=renda * 0.50,
             line_dash="dash",
             line_color="red",
-            annotation_text="50% da renda",
+            annotation_text="🚨 50% da renda",
             annotation_position="top left"
         )
 
-    # ======================
-    # LAYOUT
-    # ======================
+    # ============================
+    # LINHA INVISÍVEL (TOTAL REAL)
+    # ============================
+
+    fig.add_scatter(
+        x=df_plot["Month"],
+        y=df_plot["Desembolso Real"],
+        mode="lines",
+        line=dict(color="rgba(0,0,0,0)"),
+        name="Total do Mês",
+        hovertemplate="<b>Total: R$ %{y:,.2f}</b>"
+    )
+
+    # ============================
+    # LAYOUT (IGUAL ANTIGO)
+    # ============================
 
     fig.update_layout(
         barmode="stack",
-        title="Composição Mensal Completa (Custos + Poupança)",
         xaxis_title="Meses até as chaves",
-        yaxis_title="R$",
-        template="plotly_dark",
-        height=520,
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            x=0
-        ),
-        hovermode="x unified"
+        hovermode="x unified",
+        legend_title_text="",
+        template="plotly_dark"
+    )
+
+    fig.update_traces(
+        selector=dict(type='bar'),
+        hovertemplate="R$ %{y:,.2f}"
     )
 
     return fig

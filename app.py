@@ -147,6 +147,33 @@ construction_df = simulate_construction_phase(
     annual_installment=annual_installment,
 )
 
+# ============================
+# RECRIANDO LÓGICA DO APP ANTIGO
+# ============================
+
+lista_poupanca = []
+lista_desembolso_real = []
+
+orcamento_alvo = monthly_budget
+poupanca_minima = minimum_saving_floor
+
+for custo in construction_df["Total Cost"]:
+    poupanca_projetada = orcamento_alvo - custo
+
+    if poupanca_projetada < poupanca_minima:
+        poupanca_real = poupanca_minima
+        desembolso_mensal = custo + poupanca_minima
+    else:
+        poupanca_real = poupanca_projetada
+        desembolso_mensal = orcamento_alvo
+
+    lista_poupanca.append(poupanca_real)
+    lista_desembolso_real.append(desembolso_mensal)
+
+construction_df["Poupança Gerada"] = lista_poupanca
+construction_df["Desembolso Real"] = lista_desembolso_real
+
+
 portfolio_df = simulate_portfolio(
     contributions=construction_df["Monthly Savings"],
     months_until_keys=profile.months_until_keys,
