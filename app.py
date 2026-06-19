@@ -1,3 +1,19 @@
+"""
+APP PRINCIPAL
+
+Este aplicativo integra múltiplos motores financeiros:
+
+1. Fluxo de obra (pré-chaves)
+2. Simulação de investimentos
+3. Simulação de financiamento (SAC/PRICE)
+4. Simulação de reforma
+5. Motor de decisão
+6. Score de risco
+
+Objetivo:
+Transformar a compra do imóvel em uma decisão quantitativa estruturada.
+"""
+
 import streamlit as st
 import pandas as pd
 
