@@ -305,6 +305,7 @@ with tab_cashflow:
             "Razão de estresse": "{:.2f}",
         }),
         use_container_width=True,
+        hide_index=True,
     )
 
 
@@ -381,6 +382,7 @@ with tab_financing:
             "Saldo final": "R$ {:,.2f}",
         }),
         use_container_width=True,
+        hide_index=True,
     )
 
 
@@ -424,6 +426,7 @@ with tab_renovation:
             "Participação": "{:.1%}",
         }),
         use_container_width=True,
+        hide_index=True,
     )
 
 
@@ -473,6 +476,7 @@ with tab_decision:
             "Score total": "{:.1f}",
         }),
         use_container_width=True,
+        hide_index=True,
     )
 
 
@@ -525,13 +529,13 @@ with tab_data:
     st.json(profile.__dict__)
 
     st.subheader("Fluxo de caixa da construção")
-    st.dataframe(construction_df, use_container_width=True)
+    st.dataframe(construction_df, use_container_width=True, hide_index=True)
 
     st.subheader("Portfólio")
-    st.dataframe(portfolio_df, use_container_width=True)
+    st.dataframe(portfolio_df, use_container_width=True, hide_index=True)
 
     st.subheader("Reforma")
-    st.dataframe(renovation_df, use_container_width=True)
+    st.dataframe(renovation_df, use_container_width=True, hide_index=True)
 
     st.subheader("Estratégias de decisão")
-    st.dataframe(strategies_df, use_container_width=True)
+    st.dataframe(strategies_df, use_container_width=True, hide_index=True)
