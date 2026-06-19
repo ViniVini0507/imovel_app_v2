@@ -189,7 +189,7 @@ best_strategy_label = strategy_display_labels.get(
 )
 
 
-tab_cockpit, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_decision, tab_risk, tab_data = st.tabs(
+tab_exec, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_decision, tab_risk, tab_data = st.tabs(
     [
         "Geral",
         "🏗️ Fluxo de Obra",
@@ -203,9 +203,9 @@ tab_cockpit, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_d
 )
 
 
-with tab_cockpit:
+with tab_exec:
     section(
-        "Cockpit executivo",
+        "Visão Executiva",
         "Visão geral da posição financeira na entrega das chaves e da prontidão para decidir.",
     )
 
@@ -236,6 +236,14 @@ with tab_cockpit:
     )
 
     st.divider()
+
+    if renovation_coverage < 1:
+        st.error("🚨 A reforma não está totalmente coberta. Evite amortizar o financiamento.")
+    elif risk["overall"]["status"] == "red":
+        st.warning("⚠️ Alto risco financeiro. Preserve liquidez.")
+    else:
+        st.success("✅ Situação equilibrada. Amortização controlada é viável.")
+
 
     c5, c6, c7 = st.columns(3)
 
@@ -510,6 +518,7 @@ with tab_risk:
         "Cobertura da reforma",
         pct(risk["renovation_coverage"]["coverage"]),
         status_badge(risk["renovation_coverage"]["status"]),
+        delta=f"{(renovation_coverage-1)*100:.1f}%"
     )
 
     c4.metric(

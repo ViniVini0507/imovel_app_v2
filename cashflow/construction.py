@@ -70,7 +70,10 @@ def simulate_construction_phase(
     accumulated_savings = 0
 
     for month in range(1, months + 1):
-        annual_cost = annual_installment if month % 12 == annual_installment_month % 12 else 0
+        if annual_installment > 0 and month % annual_installment_month == 0:
+            annual_cost = annual_installment
+        else:
+            annual_cost = 0
         cost = builder_installment + evolution[month - 1] + annual_cost
 
         available_for_saving = monthly_budget - cost
