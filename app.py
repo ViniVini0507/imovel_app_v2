@@ -94,7 +94,7 @@ with st.sidebar:
         "Mês de início da evolução da obra",
         min_value=1,
         max_value=profile.months_until_keys,
-        value=8,
+        value=3,
         help="Define a partir de qual mês a evolução da obra começa a impactar os custos.",
     )
 
