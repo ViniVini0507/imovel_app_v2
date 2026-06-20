@@ -9,6 +9,17 @@ AC_UNIT_COST_BY_PACKAGE = {
     "Premium": 5000,      # split inverter alta eficiência
 }
 
+CABINETRY_COST_BY_PACKAGE = {
+    "Basic": 18000,
+    "Recommended": 28000,
+    "Premium": 45000
+}
+
+APPLIANCES_COST_BY_PACKAGE = {
+    "Basic": 12000,
+    "Recommended": 18000,
+    "Premium": 28000
+}
 
 def estimate_renovation_cost(
     apartment_size_m2: float,
@@ -40,9 +51,21 @@ def estimate_renovation_cost(
     rows = []
 
     for category, cost_per_m2 in package_costs.items():
+
+        # ✅ AC já estava certo (por unidade)
         if category == "ac":
-            custo_unitario = AC_UNIT_COST_BY_PACKAGE.get(resolved_package, 6000)
+            custo_unitario = AC_UNIT_COST_BY_PACKAGE.get(resolved_package, 3500)
             base_cost = num_ares * custo_unitario
+
+        # ✅ NOVO: CABINETRY (valor fixo)
+        elif category == "cabinetry":
+            base_cost = CABINETRY_COST_BY_PACKAGE.get(resolved_package, 30000)
+
+        # ✅ NOVO: APPLIANCES (valor fixo)
+        elif category == "appliances":
+            base_cost = APPLIANCES_COST_BY_PACKAGE.get(resolved_package, 20000)
+
+        # ✅ resto continua por m²
         else:
             base_cost = apartment_size_m2 * cost_per_m2
 
@@ -53,7 +76,7 @@ def estimate_renovation_cost(
             "Base Cost": base_cost,
             "Inflated Cost": inflated_cost,
             "Cost per m²": cost_per_m2,
-        })
+    })
 
     df = pd.DataFrame(rows)
     df["Share"] = df["Inflated Cost"] / df["Inflated Cost"].sum()

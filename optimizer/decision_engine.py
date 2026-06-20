@@ -117,12 +117,18 @@ def generate_decision_strategies(
         # 3. AMORTIZAÇÃO VS INVESTIMENTO
         # ============================
 
+        # garantir que sempre existe material para decisão
+
+        min_base = cash_at_keys * 0.10  # 🔥 10% do caixa disponível
+
+        usable_cash = max(remaining, min_base)
+
         amortization = min(
-            remaining * amort_factor,
+            usable_cash * amort_factor,
             outstanding_balance
         )
 
-        idle = remaining - amortization
+        idle = max(remaining - amortization, 0)
 
         # ============================
         # 4. GANHO REAL

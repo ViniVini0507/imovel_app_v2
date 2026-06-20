@@ -83,8 +83,10 @@ with st.sidebar:
         help="Economias mínimas obrigatórias a cada mês mesmo se os gastos ultrapassarem o orçamento.",
     )
 
+    st.subheader("Ajustes de estratégia")
+
     renovation_cash_ratio = st.slider(
-        "Quanto da reforma será pago à vista (%)",
+        "Quanto da reforma você pagará à vista (%)",
         min_value=0.2,
         max_value=1.0,
         value=0.4,
