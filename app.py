@@ -417,28 +417,69 @@ with tab_investments:
     )
 
     allocation_this_month = get_current_allocation(portfolio_df, int(selected_month))
-    contribution_this_month = float(
-        construction_df.loc[construction_df["Month"] == selected_month, "Monthly Savings"].iloc[0]
-    )
 
-    if allocation_this_month:
-        alloc_table = pd.DataFrame([
-            {
-                "Ativo": asset_name,
-                "Alocação": f"{weight * 100:.1f}%",
-                "Valor (R$)": money(contribution_this_month * weight),
-            }
-            for asset_name, weight in allocation_this_month.items()
-        ])
-        monthly_investment_input = st.number_input(
-            "Este mês, você pretende investir:",
-            min_value=0.0,
-            value=float(monthly_investment),  # 👈 valor automático como default
-            step=100.0
-            )
-        st.dataframe(alloc_table, use_container_width=True, hide_index=True)
-    else:
-        st.info("Sem dados de alocação para o mês selecionado.")
+# ✅ valor previsto pelo modelo
+contribution_this_month = float(
+    construction_df.loc[construction_df["Month"] == selected_month, "Monthly Savings"].iloc[0]
+)
+
+# ✅ INPUT EDITÁVEL (COM DEFAULT AUTOMÁTICO)
+monthly_investment_input = st.number_input(
+    "💰 Este mês, você pretende investir:",
+    min_value=0.0,
+    value=contribution_this_month,  # 🔥 default automático
+    step=100.0,
+    key=f"investment_input_{selected_month}"
+)
+
+# ✅ diferença vs modelo
+delta = monthly_investment_input - contribution_this_month
+
+st.caption(
+    f"Previsto pelo modelo: {money(contribution_this_month)} | Diferença: {money(delta)}"
+)
+
+# ✅ usar valor REAL EDITADO
+real_investment = monthly_investment_input
+
+
+# ✅ FUNÇÃO DE LIQUIDEZ (inline - simples)
+def calculate_redemption_month(month, asset_name, total_months):
+    months_remaining = total_months - month
+
+    if "Liquidez" in asset_name:
+        return month  # imediato
+
+    elif "CDB" in asset_name:
+        return month + 6 if months_remaining > 6 else month
+
+    elif "LCI" in asset_name or "LCA" in asset_name:
+        return month + 12 if months_remaining > 12 else month
+
+    else:  # Multimercado
+        return month + 3 if months_remaining > 3 else month
+
+
+# ✅ montar tabela final
+if allocation_this_month:
+    alloc_table = pd.DataFrame([
+        {
+            "Ativo": asset_name,
+            "Alocação": f"{weight * 100:.1f}%",
+            "Valor (R$)": money(real_investment * weight),
+            "Disponível no mês": calculate_redemption_month(
+                selected_month,
+                asset_name,
+                profile.months_until_keys
+            ),
+        }
+        for asset_name, weight in allocation_this_month.items()
+    ])
+
+    st.dataframe(alloc_table, use_container_width=True, hide_index=True)
+
+else:
+    st.info("Sem dados de alocação para o mês selecionado.")
 
 
 with tab_financing:
