@@ -42,3 +42,35 @@ def simulate_portfolio(
         rows.append(row)
 
     return pd.DataFrame(rows)
+
+
+_ASSET_LABELS = {
+    "Liquidity": "Liquidez (CDB / Tesouro Selic)",
+    "PostFixed": "Pós-fixado (CDB 105% CDI)",
+    "TaxFree": "Isento de IR (LCI/LCA)",
+    "ControlledRisk": "Risco controlado (Multimercado)",
+}
+
+
+def get_current_allocation(portfolio_df: pd.DataFrame, month: int) -> dict:
+    """
+    Retorna a alocação percentual RECOMENDADA para o aporte do mês informado
+    (não o saldo acumulado) — ou seja, "onde colocar o dinheiro novo este mês".
+    """
+    if portfolio_df.empty or month not in portfolio_df["Month"].values:
+        return {}
+
+    row = portfolio_df.loc[portfolio_df["Month"] == month].iloc[0]
+    months_until_keys = int(portfolio_df["Month"].max())
+    contribution = float(row["Contribution"])
+    months_remaining = max(months_until_keys - month + 1, 1)
+
+    allocation = dynamic_allocation(
+        months_remaining=months_remaining,
+        monthly_contribution=contribution,
+    )
+
+    return {
+        _ASSET_LABELS.get(asset_key, asset_key): weight
+        for asset_key, weight in allocation.items()
+    }

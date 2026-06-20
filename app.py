@@ -20,7 +20,7 @@ import pandas as pd
 from config.profiles import PROFILES
 from cashflow.construction import simulate_construction_phase
 from finance.amortization import generate_amortization_schedule, simulate_extra_amortization
-from investments.portfolio import simulate_portfolio
+from investments.portfolio import simulate_portfolio, get_current_allocation
 from investments.monte_carlo import simulate_monte_carlo
 from renovation.renovation_engine import estimate_renovation_cost
 from risk.risk_engine import full_risk_assessment
@@ -404,6 +404,34 @@ with tab_investments:
         use_container_width=True,
         key="monte_carlo_chart"
     )
+
+    st.divider()
+    st.subheader("Onde investir este mês")
+
+    available_months = construction_df["Month"].tolist()
+    selected_month = st.selectbox(
+        "Mês de referência", available_months,
+        index=min(0, len(available_months) - 1),
+    )
+
+    allocation_this_month = get_current_allocation(portfolio_df, int(selected_month))
+    contribution_this_month = float(
+        construction_df.loc[construction_df["Month"] == selected_month, "Monthly Savings"].iloc[0]
+    )
+
+    if allocation_this_month:
+        alloc_table = pd.DataFrame([
+            {
+                "Ativo": asset_name,
+                "Alocação": f"{weight * 100:.1f}%",
+                "Valor (R$)": money(contribution_this_month * weight),
+            }
+            for asset_name, weight in allocation_this_month.items()
+        ])
+        st.markdown(f"**Este mês, invista {money(contribution_this_month)}:**")
+        st.dataframe(alloc_table, use_container_width=True, hide_index=True)
+    else:
+        st.info("Sem dados de alocação para o mês selecionado.")
 
 
 with tab_financing:
