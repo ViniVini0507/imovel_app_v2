@@ -157,6 +157,16 @@ construction_df = simulate_construction_phase(
     target_construction_evolution=profile.approved_first_installment,
 )
 
+# ============================
+# REAL CONTRIBUTIONS STORAGE
+# ============================
+
+if "real_contributions" not in st.session_state:
+    st.session_state.real_contributions = {
+        int(row["Month"]): float(row["Monthly Savings"])
+        for _, row in construction_df.iterrows()
+    }
+
 # Mantemos apenas os campos já calculados pelo modelo financeiro central.
 construction_df["Poupança Gerada"] = construction_df["Monthly Savings"]
 construction_df["Desembolso Real"] = construction_df["Real Monthly Spending"]
@@ -247,15 +257,6 @@ best_strategy_label = strategy_display_labels.get(
     best_strategy["Strategy"],
 )
 
-# ============================
-# REAL CONTRIBUTIONS STORAGE
-# ============================
-
-if "real_contributions" not in st.session_state:
-    st.session_state.real_contributions = {
-        int(row["Month"]): float(row["Monthly Savings"])
-        for _, row in construction_df.iterrows()
-    }
 
 tab_exec, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_decision, tab_risk, tab_data = st.tabs(
     [
@@ -442,7 +443,11 @@ with tab_investments:
     )
 
     # valor REAL SALVO
-    current_real_value = st.session_state.real_contributions[selected_month]
+    current_real_value = st.session_state.real_contributions.get(
+        selected_month,
+        contribution_this_month
+    )
+
 
     # INPUT EDITÁVEL (com memória)
     monthly_investment_input = st.number_input(
