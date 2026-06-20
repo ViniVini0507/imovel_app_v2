@@ -342,7 +342,7 @@ with tab_exec:
 
         Essa estratégia aloca aproximadamente:
         - {money(best_strategy["Emergency Reserve"])} para reserva de emergência
-        - {money(best_strategy["Renovation"])} para reforma
+        - {money(best_strategy["Renovation (Cash Used)"])} para reforma
         - {money(best_strategy["Loan Amortization"])} para amortização de empréstimo
         """
     )
