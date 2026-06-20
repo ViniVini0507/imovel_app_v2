@@ -49,12 +49,12 @@ RENOVATION_PACKAGES = {
         "decor": 220,
     },
     "Recommended": {
-        "civil_work": 950,
-        "cabinetry": 1400,
-        "appliances": 750,
-        "lighting": 300,
-        "ac": 450,
-        "decor": 380,
+        "civil_work": 950,      # mantém — já validado
+        "cabinetry": 0,         # remover do cálculo por m²
+        "appliances": 0,        # remover do cálculo por m²
+        "lighting": 280,        # leve ajuste para baixo
+        "ac": 0,                # já tratado por unidade, não por m²
+        "decor": 380,           # mantém
     },
     "Premium": {
         "civil_work": 1450,

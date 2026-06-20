@@ -85,7 +85,15 @@ def generate_decision_strategies(
         # ============================
         # 1. RESERVA
         # ============================
-        reserve = min(reserve_m * monthly_expenses, cash_at_keys)
+        max_reserve = reserve_m * monthly_expenses
+
+        # 🔥 limite de reserva como % do caixa
+        reserve_cap = 0.6  # no máximo 60% do caixa
+
+        reserve = min(
+            max_reserve,
+            cash_at_keys * reserve_cap
+        )
 
         remaining = cash_at_keys - reserve
 
@@ -96,10 +104,12 @@ def generate_decision_strategies(
         # 🔥 só parte da reforma precisa ser paga à vista
         effective_renovation_cost = renovation_cost * renovation_cash_ratio
 
+        
         renovation = min(
-            effective_renovation_cost * reno_factor,
+            effective_renovation_cost * min(reno_factor, 1.0),
             remaining
         )
+
 
         remaining -= renovation
 
