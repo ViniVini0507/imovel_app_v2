@@ -663,7 +663,7 @@ with tab_decision:
     strategies_display = strategies_df.rename(columns={
         "Strategy": "Estratégia",
         "Emergency Reserve": "Reserva de emergência",
-        "Renovation": "Reforma",
+        "Renovation (Cash Used)": "Reforma (à vista)",
         "Loan Amortization": "Amortização do empréstimo",
         "Idle Cash": "Caixa ocioso",
         "Renovation Coverage": "Cobertura da reforma",
