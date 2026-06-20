@@ -83,6 +83,14 @@ with st.sidebar:
         help="Economias mínimas obrigatórias a cada mês mesmo se os gastos ultrapassarem o orçamento.",
     )
 
+    renovation_cash_ratio = st.slider(
+        "Quanto da reforma será pago à vista (%)",
+        min_value=0.2,
+        max_value=1.0,
+        value=0.4,
+        step=0.05
+    )
+
     construction_curve = st.selectbox(
         "Curva de evolução de obra",
         ["Linear", "Curva em S", "Acumulado no final"],
@@ -239,6 +247,7 @@ risk = full_risk_assessment(
     renovation_cost=renovation_cost,
 )
 
+
 strategies_df = generate_decision_strategies(
     cash_at_keys=projected_cash_at_keys,
     renovation_cost=renovation_cost,
@@ -248,7 +257,9 @@ strategies_df = generate_decision_strategies(
     financing_system=profile.financing_system,
     term_months=profile.term_months,
     investment_horizon_months=36,
+    renovation_cash_ratio=renovation_cash_ratio,
 )
+
 
 best_strategy = strategies_df.iloc[0]
 strategy_display_labels = {

@@ -63,7 +63,14 @@ def generate_decision_strategies(
     financing_system="SAC",
     term_months=360,
     investment_horizon_months=36,
+    renovation_cash_ratio=0.4  # 🔥 NOVO
 ):
+    """
+    Agora:
+    - reforma NÃO consome 100% do caixa
+    - parte é parcelada / flexível
+    """
+
     strategies = {
         "Aggressive Amortization": (3, 0.7, 0.8),
         "Balanced": (6, 1.0, 0.5),
@@ -75,17 +82,41 @@ def generate_decision_strategies(
 
     for name, (reserve_m, reno_factor, amort_factor) in strategies.items():
 
+        # ============================
+        # 1. RESERVA
+        # ============================
         reserve = min(reserve_m * monthly_expenses, cash_at_keys)
 
         remaining = cash_at_keys - reserve
 
-        renovation = min(renovation_cost * reno_factor, remaining)
+        # ============================
+        # 2. REFORMA (CORREÇÃO)
+        # ============================
+
+        # 🔥 só parte da reforma precisa ser paga à vista
+        effective_renovation_cost = renovation_cost * renovation_cash_ratio
+
+        renovation = min(
+            effective_renovation_cost * reno_factor,
+            remaining
+        )
 
         remaining -= renovation
 
-        amortization = min(remaining * amort_factor, outstanding_balance)
+        # ============================
+        # 3. AMORTIZAÇÃO VS INVESTIMENTO
+        # ============================
+
+        amortization = min(
+            remaining * amort_factor,
+            outstanding_balance
+        )
 
         idle = remaining - amortization
+
+        # ============================
+        # 4. GANHO REAL
+        # ============================
 
         interest_saved = _interest_saved_by_amortization(
             amortization,
@@ -95,14 +126,18 @@ def generate_decision_strategies(
             term_months,
         )
 
-        invest_gain = _investment_gain(amortization, investment_horizon_months)
+        invest_gain = _investment_gain(
+            amortization,
+            investment_horizon_months
+        )
 
         advantage = interest_saved - invest_gain
 
         rows.append({
             "Strategy": name,
             "Emergency Reserve": reserve,
-            "Renovation": renovation,
+            "Renovation (Cash Used)": renovation,
+            "Total Renovation Cost": renovation_cost,
             "Loan Amortization": amortization,
             "Idle Cash": idle,
             "Interest Saved": interest_saved,
