@@ -83,16 +83,6 @@ with st.sidebar:
         help="Economias mínimas obrigatórias a cada mês mesmo se os gastos ultrapassarem o orçamento.",
     )
 
-    st.subheader("Ajustes de estratégia")
-
-    renovation_cash_ratio = st.slider(
-        "Quanto da reforma você pagará à vista (%)",
-        min_value=0.2,
-        max_value=1.0,
-        value=0.4,
-        step=0.05
-    )
-
     construction_curve = st.selectbox(
         "Curva de evolução de obra",
         ["Linear", "Curva em S", "Acumulado no final"],
@@ -116,6 +106,16 @@ with st.sidebar:
     )
 
     st.divider()
+
+    st.subheader("Ajustes de estratégia")
+
+    renovation_cash_ratio = st.slider(
+        "Quanto da reforma você pagará à vista (%)",
+        min_value=0.2,
+        max_value=1.0,
+        value=0.4,
+        step=0.05
+    )
 
     renovation_package = st.selectbox(
         "Pacote de reforma",
