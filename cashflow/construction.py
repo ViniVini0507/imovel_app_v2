@@ -33,16 +33,16 @@ def construction_evolution_curve(
     curve_type: str,
     target_value: float | None = None,
     start_month: int = 1,
+    sigmoid_steepness: float = 1.6,
+    backloaded_exponent: float = 2.5,
 ) -> np.ndarray:
     """
     Gera a curva de evolução da obra com início atrasado.
 
-    A lógica financeira é conservadora: a obra só começa a crescer
-    depois de `start_month`, e o crescimento é controlado com uma
-    interpolação linear entre o valor inicial e o valor alvo.
+    Linear: interpolação reta entre valor inicial e alvo.
+    S-Curve: crescimento lento -> acelerado -> estabiliza (sigmoide).
+    Back-loaded: custo concentrado perto da entrega (curva convexa).
     """
-    # Garante que valores vindos da UI ou do banco de dados sejam tratados
-    # de forma consistente mesmo quando chegam como tipos diferentes.
     try:
         months = int(months)
         start_month = int(start_month)
@@ -52,14 +52,11 @@ def construction_evolution_curve(
         return np.zeros(0, dtype=float)
 
     curve_type = _normalize_curve_type(curve_type)
-
     evolution = np.zeros(months, dtype=float)
 
     if months <= 0:
         return evolution
 
-    # `start_month` é o primeiro mês em que a obra começa a crescer.
-    # Antes disso, o custo de evolução permanece zero.
     if start_month <= 1:
         active_months = months
     else:
@@ -68,15 +65,30 @@ def construction_evolution_curve(
     if active_months <= 0:
         return evolution
 
-    # Mantemos o comportamento controlado esperado pelo modelo financeiro.
-    # Para todos os rótulos aceitos, usamos a mesma lógica de interpolação.
-    if curve_type in {"Linear", "S-Curve", "Back-loaded"}:
+    if active_months == 1:
+        evolution[start_month - 1:] = target_value
+        return evolution
+
+    delta = target_value - initial_value
+
+    if curve_type == "Linear":
         values = np.linspace(initial_value, target_value, active_months)
-        evolution[start_month - 1 :] = values
+
+    elif curve_type == "S-Curve":
+        t = np.linspace(-6, 6, active_months) * sigmoid_steepness / 3.0
+        sigmoid = 1 / (1 + np.exp(-t))
+        sigmoid_norm = (sigmoid - sigmoid.min()) / (sigmoid.max() - sigmoid.min())
+        values = initial_value + delta * sigmoid_norm
+
+    elif curve_type == "Back-loaded":
+        fraction = np.linspace(0.0, 1.0, active_months)
+        convex = fraction ** backloaded_exponent
+        values = initial_value + delta * convex
 
     else:
         raise ValueError(f"Unknown curve type: {curve_type}")
 
+    evolution[start_month - 1:] = values
     return evolution
 
 
@@ -92,14 +104,6 @@ def simulate_construction_phase(
     evolution_start_month: int = 1,
     target_construction_evolution: float | None = None,
 ) -> pd.DataFrame:
-    """
-    Simula o fluxo de caixa da fase de construção.
-
-    O modelo respeita exatamente a restrição de caixa:
-    - `projected_savings = monthly_budget - total_cost`
-    - se esse valor ficar abaixo do piso mínimo, o sistema força a poupança
-      mínima e aumenta o gasto real para cobrir o déficit.
-    """
     try:
         builder_installment = float(builder_installment)
         initial_construction_evolution = float(initial_construction_evolution)
@@ -140,8 +144,6 @@ def simulate_construction_phase(
 
         monthly_evolution = float(evolution[month - 1])
         total_cost = builder_installment + monthly_evolution + annual_cost
-
-        # Lógica financeira obrigatória do modelo.
         projected_savings = monthly_budget - total_cost
 
         if projected_savings < minimum_saving_floor:
@@ -156,19 +158,17 @@ def simulate_construction_phase(
         accumulated_savings += savings
         stress_ratio = real_spending / monthly_budget if monthly_budget > 0 else np.nan
 
-        rows.append(
-            {
-                "Month": month,
-                "Builder Installment": builder_installment,
-                "Construction Evolution": monthly_evolution,
-                "Annual Installment": annual_cost,
-                "Total Cost": total_cost,
-                "Monthly Savings": savings,
-                "Accumulated Savings": accumulated_savings,
-                "Real Monthly Spending": real_spending,
-                "Stress Amount": stress,
-                "Stress Ratio": stress_ratio,
-            }
-        )
+        rows.append({
+            "Month": month,
+            "Builder Installment": builder_installment,
+            "Construction Evolution": monthly_evolution,
+            "Annual Installment": annual_cost,
+            "Total Cost": total_cost,
+            "Monthly Savings": savings,
+            "Accumulated Savings": accumulated_savings,
+            "Real Monthly Spending": real_spending,
+            "Stress Amount": stress,
+            "Stress Ratio": stress_ratio,
+        })
 
     return pd.DataFrame(rows)
