@@ -162,13 +162,20 @@ construction_df["Poupança Gerada"] = construction_df["Monthly Savings"]
 construction_df["Desembolso Real"] = construction_df["Real Monthly Spending"]
 
 
+# usar contribuições reais
+real_contributions_series = [
+    st.session_state.real_contributions[int(row["Month"])]
+    for _, row in construction_df.iterrows()
+]
+
 portfolio_df = simulate_portfolio(
-    contributions=construction_df["Monthly Savings"],
+    contributions=real_contributions_series,
     months_until_keys=profile.months_until_keys,
 )
 
+
 mc = simulate_monte_carlo(
-    monthly_contributions=construction_df["Monthly Savings"],
+    monthly_contributions=real_contributions_series,
     months_until_keys=profile.months_until_keys,
     simulations=monte_carlo_runs,
 )
@@ -240,6 +247,15 @@ best_strategy_label = strategy_display_labels.get(
     best_strategy["Strategy"],
 )
 
+# ============================
+# REAL CONTRIBUTIONS STORAGE
+# ============================
+
+if "real_contributions" not in st.session_state:
+    st.session_state.real_contributions = {
+        int(row["Month"]): float(row["Monthly Savings"])
+        for _, row in construction_df.iterrows()
+    }
 
 tab_exec, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_decision, tab_risk, tab_data = st.tabs(
     [
@@ -418,68 +434,71 @@ with tab_investments:
 
     allocation_this_month = get_current_allocation(portfolio_df, int(selected_month))
 
-# ✅ valor previsto pelo modelo
-contribution_this_month = float(
-    construction_df.loc[construction_df["Month"] == selected_month, "Monthly Savings"].iloc[0]
-)
+    # valor previsto
+    contribution_this_month = float(
+        construction_df.loc[
+            construction_df["Month"] == selected_month, "Monthly Savings"
+        ].iloc[0]
+    )
 
-# ✅ INPUT EDITÁVEL (COM DEFAULT AUTOMÁTICO)
-monthly_investment_input = st.number_input(
-    "💰 Este mês, você pretende investir:",
-    min_value=0.0,
-    value=contribution_this_month,  # 🔥 default automático
-    step=100.0,
-    key=f"investment_input_{selected_month}"
-)
+    # valor REAL SALVO
+    current_real_value = st.session_state.real_contributions[selected_month]
 
-# ✅ diferença vs modelo
-delta = monthly_investment_input - contribution_this_month
+    # INPUT EDITÁVEL (com memória)
+    monthly_investment_input = st.number_input(
+        "💰 Este mês, você pretende investir:",
+        min_value=0.0,
+        value=current_real_value,
+        step=100.0,
+        key=f"investment_input_{selected_month}"
+    )
 
-st.caption(
-    f"Previsto pelo modelo: {money(contribution_this_month)} | Diferença: {money(delta)}"
-)
+    # salvar mudança
+    st.session_state.real_contributions[selected_month] = monthly_investment_input
 
-# ✅ usar valor REAL EDITADO
-real_investment = monthly_investment_input
+    # diferença vs modelo
+    delta = monthly_investment_input - contribution_this_month
 
+    st.caption(
+        f"Previsto: {money(contribution_this_month)} | Diferença: {money(delta)}"
+    )
 
-# ✅ FUNÇÃO DE LIQUIDEZ (inline - simples)
-def calculate_redemption_month(month, asset_name, total_months):
-    months_remaining = total_months - month
-
-    if "Liquidez" in asset_name:
-        return month  # imediato
-
-    elif "CDB" in asset_name:
-        return month + 6 if months_remaining > 6 else month
-
-    elif "LCI" in asset_name or "LCA" in asset_name:
-        return month + 12 if months_remaining > 12 else month
-
-    else:  # Multimercado
-        return month + 3 if months_remaining > 3 else month
+    real_investment = monthly_investment_input
 
 
-# ✅ montar tabela final
-if allocation_this_month:
-    alloc_table = pd.DataFrame([
-        {
-            "Ativo": asset_name,
-            "Alocação": f"{weight * 100:.1f}%",
-            "Valor (R$)": money(real_investment * weight),
-            "Disponível no mês": calculate_redemption_month(
-                selected_month,
-                asset_name,
-                profile.months_until_keys
-            ),
-        }
-        for asset_name, weight in allocation_this_month.items()
-    ])
+    # ========= LIQUIDEZ =========
+    def calculate_redemption_month(month, asset_name, total_months):
+        months_remaining = total_months - month
 
-    st.dataframe(alloc_table, use_container_width=True, hide_index=True)
+        if "Liquidez" in asset_name:
+            return month
+        elif "CDB" in asset_name:
+            return month + 6 if months_remaining > 6 else month
+        elif "LCI" in asset_name or "LCA" in asset_name:
+            return month + 12 if months_remaining > 12 else month
+        else:
+            return month + 3 if months_remaining > 3 else month
 
-else:
-    st.info("Sem dados de alocação para o mês selecionado.")
+
+    # tabela
+    if allocation_this_month:
+        alloc_table = pd.DataFrame([
+            {
+                "Ativo": asset_name,
+                "Alocação": f"{weight * 100:.1f}%",
+                "Valor (R$)": money(real_investment * weight),
+                "Disponível no mês": calculate_redemption_month(
+                    selected_month,
+                    asset_name,
+                    profile.months_until_keys
+                )
+            }
+            for asset_name, weight in allocation_this_month.items()
+        ])
+
+        st.dataframe(alloc_table, use_container_width=True, hide_index=True)
+    else:
+        st.info("Sem dados de alocação para o mês selecionado.")
 
 
 with tab_financing:
