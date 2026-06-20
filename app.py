@@ -443,7 +443,50 @@ with tab_financing:
         }),
         use_container_width=True,
         hide_index=True,
+
+        st.divider()
+    st.subheader("Simulador de aporte extra")
+
+    col_a, col_b, col_c = st.columns(3)
+    with col_a:
+        extra_payment = st.number_input(
+            "Valor do aporte extra (R$)", min_value=0.0, value=0.0, step=1000.0,
+        )
+    with col_b:
+        target_month = st.number_input(
+            "Mês de aplicação do aporte", min_value=1,
+            max_value=int(amortization_df["Month"].max()), value=1, step=1,
+        )
+    with col_c:
+        mode_label = st.radio(
+            "Objetivo do aporte",
+            ["Reduzir prazo (recomendado)", "Reduzir parcela"],
+        )
+    mode = "reduce_term" if "prazo" in mode_label else "reduce_installment"
+
+    if extra_payment > 0:
+        result = simulate_extra_amortization(
+            schedule=amortization_df,
+            extra_payment=extra_payment,
+            month=int(target_month),
+            system=profile.financing_system,
+            mode=mode,
+        )
+
+        c1, c2 = st.columns(2)
+        c1.metric("Juros economizados", money(result["interest_saved"]))
+        c2.metric("Meses reduzidos do contrato", f'{result["months_reduced"]} meses')
+
+        if result["warning"]:
+            st.warning(result["warning"])
+
+        st.plotly_chart(
+            amortization_chart(result["new_schedule"]),
+            use_container_width=True,
+            key="amortization_extra_chart",
+        )
     )
+
 
 
 with tab_renovation:
