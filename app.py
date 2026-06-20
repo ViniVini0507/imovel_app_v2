@@ -430,7 +430,12 @@ with tab_investments:
             }
             for asset_name, weight in allocation_this_month.items()
         ])
-        st.markdown(f"**Este mês, invista {money(contribution_this_month)}:**")
+        monthly_investment_input = st.number_input(
+            "Este mês, você pretende investir:",
+            min_value=0.0,
+            value=float(monthly_investment),  # 👈 valor automático como default
+            step=100.0
+            )
         st.dataframe(alloc_table, use_container_width=True, hide_index=True)
     else:
         st.info("Sem dados de alocação para o mês selecionado.")
