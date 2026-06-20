@@ -21,7 +21,7 @@ from config.profiles import PROFILES
 from cashflow.construction import simulate_construction_phase
 from finance.amortization import generate_amortization_schedule, simulate_extra_amortization
 from investments.portfolio import simulate_portfolio, get_current_allocation
-from investments.monte_carlo import simulate_monte_carlo
+from investments.monte_carlo import simulate_monte_carlo, explain_monte_carlo
 from renovation.renovation_engine import estimate_renovation_cost
 from risk.risk_engine import full_risk_assessment
 from optimizer.decision_engine import generate_decision_strategies
@@ -404,6 +404,8 @@ with tab_investments:
         use_container_width=True,
         key="monte_carlo_chart"
     )
+
+    st.markdown(explain_monte_carlo(mc))
 
     st.divider()
     st.subheader("Onde investir este mês")

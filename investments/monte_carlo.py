@@ -47,3 +47,32 @@ def simulate_monte_carlo(
         "mean": float(np.mean(values)),
         "std": float(np.std(values)),
     }
+
+
+def _format_brl(value: float) -> str:
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def explain_monte_carlo(mc: dict) -> str:
+    """Gera um texto interpretando os resultados do Monte Carlo em linguagem simples."""
+    p5, p50, p95 = mc["p5"], mc["p50"], mc["p95"]
+    spread = p95 - p5
+    relative_spread = spread / p50 if p50 else 0
+
+    if relative_spread < 0.25:
+        risk_level = "baixa"
+        risk_note = "os cenários simulados ficam próximos uns dos outros — resultado relativamente previsível."
+    elif relative_spread < 0.6:
+        risk_level = "moderada"
+        risk_note = "há diferença relevante entre o cenário pessimista e o otimista — vale considerar essa incerteza no planejamento."
+    else:
+        risk_level = "alta"
+        risk_note = "a diferença entre os cenários é grande — o resultado final depende fortemente do comportamento do mercado."
+
+    return (
+        f"Em 5% dos cenários simulados, você termina com **menos de {_format_brl(p5)}** "
+        f"(pior caso considerado relevante). Na metade dos cenários (mediana), o resultado fica "
+        f"perto de **{_format_brl(p50)}**. Em 5% dos cenários, você supera **{_format_brl(p95)}** "
+        f"(melhor caso considerado relevante).\n\n"
+        f"A incerteza deste resultado é **{risk_level}**: {risk_note}"
+    )
