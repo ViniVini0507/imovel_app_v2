@@ -19,7 +19,7 @@ import pandas as pd
 
 from config.profiles import PROFILES
 from cashflow.construction import simulate_construction_phase
-from finance.amortization import generate_amortization_schedule
+from finance.amortization import generate_amortization_schedule, simulate_extra_amortization
 from investments.portfolio import simulate_portfolio
 from investments.monte_carlo import simulate_monte_carlo
 from renovation.renovation_engine import estimate_renovation_cost
@@ -442,9 +442,9 @@ with tab_financing:
             "Saldo final": "R$ {:,.2f}",
         }),
         use_container_width=True,
-        hide_index=True,
-
-        st.divider()
+        hide_index=True)
+    
+    st.divider()
     st.subheader("Simulador de aporte extra")
 
     col_a, col_b, col_c = st.columns(3)
@@ -485,7 +485,6 @@ with tab_financing:
             use_container_width=True,
             key="amortization_extra_chart",
         )
-    )
 
 
 
