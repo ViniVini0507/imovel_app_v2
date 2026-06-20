@@ -223,6 +223,9 @@ strategies_df = generate_decision_strategies(
     monthly_expenses=monthly_living_expenses,
     outstanding_balance=profile.financing_ceiling,
     financing_annual_rate=profile.annual_interest_rate,
+    financing_system=profile.financing_system,
+    term_months=profile.term_months,
+    investment_horizon_months=36,
 )
 
 best_strategy = strategies_df.iloc[0]
