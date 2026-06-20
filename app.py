@@ -158,14 +158,16 @@ construction_df = simulate_construction_phase(
 )
 
 # ============================
-# REAL CONTRIBUTIONS STORAGE
+# REAL CONTRIBUTIONS STORAGE (ROBUSTO)
 # ============================
 
 if "real_contributions" not in st.session_state:
-    st.session_state.real_contributions = {
-        int(row["Month"]): float(row["Monthly Savings"])
-        for _, row in construction_df.iterrows()
-    }
+
+    st.session_state.real_contributions = {}
+
+    for _, row in construction_df.iterrows():
+        month = int(row["Month"])
+        st.session_state.real_contributions[month] = float(row["Monthly Savings"])
 
 # Mantemos apenas os campos já calculados pelo modelo financeiro central.
 construction_df["Poupança Gerada"] = construction_df["Monthly Savings"]
@@ -173,10 +175,13 @@ construction_df["Desembolso Real"] = construction_df["Real Monthly Spending"]
 
 
 # usar contribuições reais
-real_contributions_series = [
-    st.session_state.real_contributions[int(row["Month"])]
+real_contributions_series = pd.Series([
+    st.session_state.real_contributions.get(
+        int(row["Month"]),
+        float(row["Monthly Savings"])
+    )
     for _, row in construction_df.iterrows()
-]
+])
 
 portfolio_df = simulate_portfolio(
     contributions=real_contributions_series,
