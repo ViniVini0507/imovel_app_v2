@@ -232,20 +232,31 @@ def strategy_score_chart(df):
     chart_df = df.copy()
     chart_df["Strategy"] = chart_df["Strategy"].map(strategy_labels).fillna(chart_df["Strategy"])
 
+    
     fig = px.bar(
         chart_df,
         x="Strategy",
-        y="Total Score",
-        color="Strategy",
-        title="Ranking das estratégias",
-        template="plotly_white",
+        y="Advantage",
+        title="Comparação: Amortizar vs Investir",
+        labels={
+            "Advantage": "Vantagem Financeira (R$)"
+        },
+        template="plotly_white"
     )
+
 
     fig.update_layout(
         height=420,
         showlegend=False,
         xaxis_title="Estratégia",
         yaxis_title="Score total",
+    )
+
+    fig.add_hline(
+        y=0,
+        line_dash="dash",
+        line_color="black",
+        annotation_text="Ponto de equilíbrio"
     )
 
     return fig
