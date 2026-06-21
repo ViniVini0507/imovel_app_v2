@@ -39,6 +39,112 @@ from ui.charts import (
 )
 
 
+def render_savings_indicator(projected_cash_at_keys: float, renovation_cost: float, months_remaining: int) -> float:
+    """Mostra o indicador 'estou poupando o suficiente?' e retorna o gap em R$."""
+    gap = projected_cash_at_keys - renovation_cost
+    coverage_ratio = projected_cash_at_keys / renovation_cost if renovation_cost > 0 else 1.0
+
+    if coverage_ratio >= 1.15:
+        icon, message = "🟢", "Você está poupando mais do que precisa para cobrir a reforma."
+    elif coverage_ratio >= 0.95:
+        icon, message = "🟡", "Você está perto da meta, mas com pouca margem de segurança."
+    else:
+        icon, message = "🔴", "Você não está poupando o suficiente para cobrir a reforma."
+
+    st.markdown(f"#### {icon} Estou poupando o suficiente?")
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Caixa projetado nas chaves", money(projected_cash_at_keys))
+    c2.metric("Custo projetado da reforma", money(renovation_cost))
+    c3.metric("Gap (caixa − reforma)", money(gap), delta=f"{(coverage_ratio - 1) * 100:.1f}%")
+
+    st.markdown(f"**{message}**")
+
+    if gap < 0 and months_remaining > 0:
+        extra_per_month_needed = abs(gap) / months_remaining
+        st.error(
+            f"Para fechar essa diferença, você precisaria poupar aproximadamente "
+            f"**{money(extra_per_month_needed)} a mais por mês** nos próximos {months_remaining} meses."
+        )
+
+    return gap
+
+
+def render_stress_warnings(construction_df: pd.DataFrame) -> bool:
+    """Identifica meses com Stress Ratio > 0.7 e explica o que isso significa. Retorna se há estresse alto."""
+    st.markdown("#### 🌡️ Estresse financeiro mês a mês")
+    st.caption(
+        "Razão de estresse = quanto do seu orçamento mensal está sendo consumido. "
+        "Se a razão de estresse > 0.7, você está forçando demais o orçamento — "
+        "ou seja, sobra pouca margem para imprevistos naquele mês."
+    )
+
+    high_stress_months = construction_df.loc[construction_df["Stress Ratio"] > 0.7, "Month"].tolist()
+    has_high_stress = len(high_stress_months) > 0
+
+    if has_high_stress:
+        months_str = ", ".join(str(int(m)) for m in high_stress_months)
+        st.warning(f"⚠️ Estresse financeiro elevado no(s) mês(es): {months_str}.")
+    else:
+        st.success("✅ Nenhum mês com estresse financeiro elevado (> 0.7).")
+
+    return has_high_stress
+
+
+def render_next_action(has_high_stress: bool, gap: float) -> None:
+    """Painel 'Próxima ação recomendada' — topo da aba Geral."""
+    if has_high_stress:
+        icon, action = "🟡", "Reduza a poupança temporariamente para aliviar a pressão financeira nos meses de pico."
+    elif gap < 0:
+        icon, action = "🔴", "Aumente a poupança mensal ou reduza o escopo da reforma."
+    else:
+        icon, action = "🟢", "Continue no plano atual ou considere alocar o caixa extra para amortizar o financiamento."
+
+    st.markdown(
+        f"""
+        <div class="section-card">
+        <h4 style="margin-top:0;">{icon} Próxima ação recomendada</h4>
+        <p style="font-size: 1.05rem; margin-bottom:0;">{action}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_savings_simulator(months_until_keys: int, renovation_cost: float) -> None:
+    """Simulador: 'e se eu poupasse R$ X fixos por mês?' — não altera os dados reais, é só um what-if."""
+    st.markdown("#### 🎚️ Simulador: quanto poupar por mês?")
+
+    simulated_monthly = st.slider(
+        "Quanto você quer poupar por mês?",
+        min_value=1000, max_value=10000, value=3000, step=100,
+        key="savings_simulator_slider",
+    )
+
+    simulated_contributions = pd.Series([float(simulated_monthly)] * months_until_keys)
+    simulated_portfolio_df = simulate_portfolio(
+        contributions=simulated_contributions,
+        months_until_keys=months_until_keys,
+    )
+    simulated_value_at_keys = (
+        float(simulated_portfolio_df["Total Portfolio"].iloc[-1]) if not simulated_portfolio_df.empty else 0.0
+    )
+    simulated_gap = simulated_value_at_keys - renovation_cost
+
+    c1, c2 = st.columns(2)
+    c1.metric("Valor projetado nas chaves", money(simulated_value_at_keys))
+    c2.metric("Gap simulado vs. reforma", money(simulated_gap))
+
+    if simulated_gap >= 0:
+        st.success(
+            f"Com {money(simulated_monthly)}/mês, sua reforma fica coberta com folga de {money(simulated_gap)}."
+        )
+    else:
+        st.warning(
+            f"Com {money(simulated_monthly)}/mês, ainda falta {money(abs(simulated_gap))} para cobrir a reforma."
+        )
+
+
 st.set_page_config(
     page_title="Planejamento Financeiro Imobiliário",
     page_icon="🏢",
@@ -168,29 +274,117 @@ construction_df = simulate_construction_phase(
 )
 
 # ============================
-# REAL CONTRIBUTIONS STORAGE (ROBUSTO)
+# TABS (criadas cedo de propósito: o data_editor da Controladoria precisa
+# rodar e gravar no session_state ANTES do recálculo de portfólio/Monte Carlo
+# logo abaixo — senão a edição só refletiria no próximo rerun do Streamlit)
+# ============================
+tab_control, tab_exec, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_decision, tab_risk, tab_data = st.tabs(
+    [
+        "📋 Controladoria",
+        "Geral",
+        "🏗️ Fluxo de Obra",
+        "💰 Investimentos",
+        "🏦 Financiamento",
+        "🛠️ Reforma",
+        "🧠 Estratégia",
+        "⚠️ Risco",
+        "📁 Dados",
+    ]
+)
+
+# ============================
+# CONTROLADORIA MENSAL — PLANEJADO vs REAL (EDITÁVEL)
 # ============================
 
-if "real_contributions" not in st.session_state:
+months_list = [int(m) for m in construction_df["Month"].tolist()]
 
-    st.session_state.real_contributions = {}
+# Sincroniza/seeda o session_state. Se o perfil mudar (prazo diferente),
+# os dicionários são resetados para os valores do modelo.
+if "real_contributions" not in st.session_state or set(st.session_state.real_contributions.keys()) != set(months_list):
+    st.session_state.real_contributions = {
+        int(row["Month"]): float(row["Monthly Savings"])
+        for _, row in construction_df.iterrows()
+    }
 
-    for _, row in construction_df.iterrows():
-        month = int(row["Month"])
-        st.session_state.real_contributions[month] = float(row["Monthly Savings"])
+if "real_evolution" not in st.session_state or set(st.session_state.real_evolution.keys()) != set(months_list):
+    st.session_state.real_evolution = {
+        int(row["Month"]): float(row["Construction Evolution"])
+        for _, row in construction_df.iterrows()
+    }
+
+controladoria_df = pd.DataFrame({
+    "Month": construction_df["Month"],
+    "Planned Monthly Savings": construction_df["Monthly Savings"],
+    "Real Monthly Savings": [st.session_state.real_contributions[m] for m in months_list],
+    "Planned Construction Evolution": construction_df["Construction Evolution"],
+    "Construction Evolution": [st.session_state.real_evolution[m] for m in months_list],
+})
+
+with tab_control:
+    section(
+        "Controladoria mensal",
+        "Edite 'Poupança real' e 'Evolução real da obra' conforme o mês acontece. "
+        "Os outros valores do app recalculam automaticamente.",
+    )
+
+    edited_controladoria_df = st.data_editor(
+        controladoria_df,
+        column_config={
+            "Month": st.column_config.NumberColumn("Mês", disabled=True),
+            "Planned Monthly Savings": st.column_config.NumberColumn(
+                "Poupança planejada (R$)", disabled=True, format="R$ %.2f",
+            ),
+            "Real Monthly Savings": st.column_config.NumberColumn(
+                "Poupança real (R$)", format="R$ %.2f", step=50.0, min_value=0.0,
+            ),
+            "Planned Construction Evolution": st.column_config.NumberColumn(
+                "Evolução planejada (R$)", disabled=True, format="R$ %.2f",
+            ),
+            "Construction Evolution": st.column_config.NumberColumn(
+                "Evolução real da obra (R$)", format="R$ %.2f", step=50.0, min_value=0.0,
+            ),
+        },
+        hide_index=True,
+        use_container_width=True,
+        num_rows="fixed",
+        key="controladoria_editor",
+    )
+
+    # Persiste de volta no session_state — isso é o que faz tudo recalcular.
+    for _, row in edited_controladoria_df.iterrows():
+        m = int(row["Month"])
+        st.session_state.real_contributions[m] = float(row["Real Monthly Savings"])
+        st.session_state.real_evolution[m] = float(row["Construction Evolution"])
+
+    total_planned_savings = float(controladoria_df["Planned Monthly Savings"].sum())
+    total_real_savings = float(edited_controladoria_df["Real Monthly Savings"].sum())
+    savings_delta = total_real_savings - total_planned_savings
+
+    total_planned_evolution = float(controladoria_df["Planned Construction Evolution"].sum())
+    total_real_evolution = float(edited_controladoria_df["Construction Evolution"].sum())
+    evolution_delta = total_real_evolution - total_planned_evolution
+
+    c1, c2 = st.columns(2)
+    c1.metric("Poupança acumulada (real vs. planejado)", money(total_real_savings), delta=money(savings_delta))
+    c2.metric("Evolução da obra (real vs. planejado)", money(total_real_evolution), delta=money(evolution_delta))
+
+    if savings_delta < 0:
+        st.warning(f"Você está {money(abs(savings_delta))} abaixo do planejado em poupança acumulada.")
+    else:
+        st.success(f"Você está {money(savings_delta)} acima do planejado em poupança acumulada.")
+
 
 # Mantemos apenas os campos já calculados pelo modelo financeiro central.
 construction_df["Poupança Gerada"] = construction_df["Monthly Savings"]
 construction_df["Desembolso Real"] = construction_df["Real Monthly Spending"]
 
-
-# usar contribuições reais
+# ============================
+# FEATURE 6: o resto do app usa SEMPRE real_contributions_series, nunca
+# os valores planejados diretamente — isso já vale para portfolio_df, mc
+# e (via projected_cash_at_keys) para o decision_engine logo abaixo.
+# ============================
 real_contributions_series = pd.Series([
-    st.session_state.real_contributions.get(
-        int(row["Month"]),
-        float(row["Monthly Savings"])
-    )
-    for _, row in construction_df.iterrows()
+    st.session_state.real_contributions[m] for m in months_list
 ])
 
 portfolio_df = simulate_portfolio(
@@ -235,6 +429,7 @@ total_contributed = float(portfolio_df["Total Contributed"].iloc[-1])
 investment_gain = float(portfolio_df["Investment Gain"].iloc[-1])
 renovation_cost = float(renovation_df["Inflated Cost"].sum())
 renovation_coverage = projected_cash_at_keys / renovation_cost if renovation_cost else 0
+gap = projected_cash_at_keys - renovation_cost
 
 avg_stress_ratio = float(construction_df["Stress Ratio"].mean())
 max_stress_ratio = float(construction_df["Stress Ratio"].max())
@@ -276,84 +471,52 @@ best_strategy_label = strategy_display_labels.get(
 )
 
 
-tab_exec, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_decision, tab_risk, tab_data = st.tabs(
-    [
-        "Geral",
-        "🏗️ Fluxo de Obra",
-        "💰 Investimentos",
-        "🏦 Financiamento",
-        "🛠️ Reforma",
-        "🧠 Estratégia",
-        "⚠️ Risco",
-        "📁 Dados",
-    ]
-)
-
-
 with tab_exec:
     section(
         "Visão Executiva",
-        "Visão geral da posição financeira na entrega das chaves e da prontidão para decidir.",
+        "Próxima ação recomendada e resumo da posição financeira na entrega das chaves.",
     )
 
-    c1, c2, c3, c4 = st.columns(4)
-
-    c1.metric(
-        "Valor projetado em caixa às chaves",
-        money(projected_cash_at_keys),
-        help="Valor projetado do portfólio de investimentos às chaves.",
-    )
-
-    c2.metric(
-        "Ganhos de investimento",
-        money(investment_gain),
-        help="Valor do portfólio menos contribuições totais.",
-    )
-
-    c3.metric(
-        "Cobertura de reforma",
-        pct(renovation_coverage),
-        help="Caixa às chaves dividido pelo custo projetado de reforma.",
-    )
-
-    c4.metric(
-        "Score de risco",
-        f'{risk["overall"]["score"]}/100',
-        status_badge(risk["overall"]["status"]),
+    # 1. PRÓXIMA AÇÃO RECOMENDADA
+    has_high_stress = bool((construction_df["Stress Ratio"] > 0.7).any())
+    render_next_action(has_high_stress, gap)
+    st.caption(
+        f"Estratégia recomendada: **{best_strategy_label}** — "
+        f"{money(best_strategy['Emergency Reserve'])} reserva, "
+        f"{money(best_strategy['Renovation (Cash Used)'])} reforma, "
+        f"{money(best_strategy['Loan Amortization'])} amortização."
     )
 
     st.divider()
 
-    if renovation_coverage < 1:
-        st.error("🚨 A reforma não está totalmente coberta. Evite amortizar o financiamento.")
-    elif risk["overall"]["status"] == "red":
-        st.warning("⚠️ Alto risco financeiro. Preserve liquidez.")
-    else:
-        st.success("✅ Situação equilibrada. Amortização controlada é viável.")
+    # 2. SAÚDE FINANCEIRA (gap + estresse)
+    render_savings_indicator(projected_cash_at_keys, renovation_cost, profile.months_until_keys)
+    st.markdown("")
+    render_stress_warnings(construction_df)
 
+    st.divider()
 
-    c5, c6, c7 = st.columns(3)
-
-    c5.metric("Mês de pico de estresse", f"Mês {peak_stress_month}")
-    c6.metric("Melhor estratégia", best_strategy_label)
-    c7.metric("P50 do Monte Carlo", money(mc["p50"]))
-
-    st.info(
-        f"""
-        Estratégia recomendada: **{best_strategy_label}**.
-
-        Essa estratégia aloca aproximadamente:
-        - {money(best_strategy["Emergency Reserve"])} para reserva de emergência
-        - {money(best_strategy["Renovation (Cash Used)"])} para reforma
-        - {money(best_strategy["Loan Amortization"])} para amortização de empréstimo
-        """
-    )
+    # 3. PROJEÇÃO NAS CHAVES (portfólio)
+    st.markdown("#### 📈 Projeção do portfólio até as chaves")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Caixa projetado nas chaves", money(projected_cash_at_keys))
+    c2.metric("Ganhos de investimento", money(investment_gain))
+    c3.metric("P50 do Monte Carlo", money(mc["p50"]))
 
     st.plotly_chart(
         portfolio_composition_chart(portfolio_df),
         use_container_width=True,
         key="portfolio_cockpit",
     )
+
+    st.divider()
+
+    # 4. INDICADORES DE RISCO
+    st.markdown("#### ⚠️ Indicadores de risco")
+    c4, c5, c6 = st.columns(3)
+    c4.metric("Score de risco geral", f'{risk["overall"]["score"]}/100', status_badge(risk["overall"]["status"]))
+    c5.metric("Mês de pico de estresse", f"Mês {peak_stress_month}")
+    c6.metric("Cobertura de reforma", pct(renovation_coverage))
 
     st.plotly_chart(
         risk_heatmap(risk),
@@ -373,6 +536,9 @@ with tab_cashflow:
     use_container_width=True,
     key="cashflow_chart"
     )
+
+    render_stress_warnings(construction_df)
+    st.divider()
 
     construction_display = construction_df.rename(columns={
         "Month": "Mês",
@@ -441,6 +607,9 @@ with tab_investments:
     )
 
     st.markdown(explain_monte_carlo(mc))
+
+    st.divider()
+    render_savings_simulator(profile.months_until_keys, renovation_cost)
 
     st.divider()
     st.subheader("Onde investir este mês")
@@ -768,3 +937,4 @@ with tab_data:
 
     st.subheader("Estratégias de decisão")
     st.dataframe(strategies_df, use_container_width=True, hide_index=True)
+    
