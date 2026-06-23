@@ -666,7 +666,7 @@ with tab_cashflow:
 
     st.divider()
 
-    construction_display = construction_df.rename(columns={
+    construction_display = construction_df.drop(columns=["Stress Amount", "Stress Ratio"]).rename(columns={
         "Month": "Mês",
         "Builder Installment": "Prestação do construtor",
         "Construction Evolution": "Evolução da obra",
@@ -1010,14 +1010,49 @@ with tab_data:
     st.json(profile.__dict__)
 
     st.subheader("Fluxo de caixa da construção")
-    st.dataframe(construction_df, use_container_width=True, hide_index=True)
+    construction_data_display = construction_df.drop(columns=["Stress Amount", "Stress Ratio"]).rename(columns={
+        "Month": "Mês",
+        "Builder Installment": "Prestação do construtor",
+        "Construction Evolution": "Evolução da obra",
+        "Annual Installment": "Parcela anual",
+        "Total Cost": "Custo total",
+        "Monthly Savings": "Poupança mensal",
+        "Accumulated Savings": "Poupança acumulada",
+        "Real Monthly Spending": "Gasto real mensal",
+    })
+    st.dataframe(construction_data_display, use_container_width=True, hide_index=True)
 
     st.subheader("Portfólio")
-    st.dataframe(portfolio_df, use_container_width=True, hide_index=True)
+    portfolio_data_display = portfolio_df.rename(columns={
+        "Month": "Mês",
+        "Contribution": "Contribuição",
+        "Total Portfolio": "Total do portfólio",
+        "Total Contributed": "Total contribuído",
+        "Investment Gain": "Ganho do investimento",
+    })
+    st.dataframe(portfolio_data_display, use_container_width=True, hide_index=True)
 
     st.subheader("Reforma")
-    st.dataframe(renovation_df, use_container_width=True, hide_index=True)
+    renovation_data_display = renovation_df.rename(columns={
+        "Category": "Categoria",
+        "Base Cost": "Custo base",
+        "Inflated Cost": "Custo inflado",
+        "Cost per m²": "Custo por m²",
+        "Share": "Participação",
+    })
+    st.dataframe(renovation_data_display, use_container_width=True, hide_index=True)
 
     st.subheader("Estratégias de decisão")
-    st.dataframe(strategies_df, use_container_width=True, hide_index=True)
+    strategies_data_display = strategies_df.rename(columns={
+        "Strategy": "Estratégia",
+        "Emergency Reserve": "Reserva de emergência",
+        "Renovation (Cash Used)": "Reforma (caixa usada)",
+        "Total Renovation Cost": "Custo total da reforma",
+        "Loan Amortization": "Amortização do empréstimo",
+        "Idle Cash": "Caixa ocioso",
+        "Interest Saved": "Juros economizados",
+        "Investment Alternative": "Alternativa de investimento",
+        "Advantage": "Vantagem",
+    })
+    st.dataframe(strategies_data_display, use_container_width=True, hide_index=True)
     
