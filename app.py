@@ -356,7 +356,7 @@ with tab_control:
 
     # ==============================
     # BASE
-    # ==============================
+    # ==============================      
     editable_df = construction_df.copy()
 
     editable_df["Real Savings"] = [
@@ -373,11 +373,18 @@ with tab_control:
     # TABELA (EXCEL)
     # ==============================
     edited_df = st.data_editor(
-        editable_df[["Month", "Poupança Gerada", "Real Savings", "Real Evolution"]],
+        editable_df[["Month", "Monthly Savings", "Real Savings", "Real Evolution"]],
         num_rows="fixed",
         use_container_width=True,
         key="control_table"
     )
+
+    edited_df.columns = [
+        "Mês",
+        "Poupança planejada",
+        "Poupança real",
+        "Evolução real"
+    ]
 
     # ==============================
     # SALVAR (JSON)
