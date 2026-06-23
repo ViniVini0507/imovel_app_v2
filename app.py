@@ -16,6 +16,29 @@ Transformar a compra do imóvel em uma decisão quantitativa estruturada.
 
 import streamlit as st
 import pandas as pd
+import os
+import json
+
+DATA_FILE = "real_data.json"
+
+
+def load_real_data(default_df):
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    else:
+        return {
+            int(row["Month"]): {
+                "savings": float(row["Monthly Savings"]),
+                "evolution": float(row["Construction Evolution"]),
+            }
+            for _, row in default_df.iterrows()
+        }
+
+
+def save_real_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=4)
 
 from config.profiles import PROFILES
 from cashflow.construction import simulate_construction_phase
@@ -273,6 +296,8 @@ construction_df = simulate_construction_phase(
     target_construction_evolution=profile.approved_first_installment,
 )
 
+real_data = load_real_data(construction_df)
+
 # ============================
 # TABS (criadas cedo de propósito: o data_editor da Controladoria precisa
 # rodar e gravar no session_state ANTES do recálculo de portfólio/Monte Carlo
@@ -281,7 +306,7 @@ construction_df = simulate_construction_phase(
 tab_control, tab_exec, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_decision, tab_risk, tab_data = st.tabs(
     [
         "📋 Controladoria",
-        "Geral",
+        "📊 Geral",
         "🏗️ Fluxo de Obra",
         "💰 Investimentos",
         "🏦 Financiamento",
@@ -387,6 +412,11 @@ real_contributions_series = pd.Series([
     st.session_state.real_contributions[m] for m in months_list
 ])
 
+real_contributions_series = pd.Series([
+    real_data[int(row["Month"])]["savings"]
+    for _, row in construction_df.iterrows()
+])
+
 portfolio_df = simulate_portfolio(
     contributions=real_contributions_series,
     months_until_keys=profile.months_until_keys,
@@ -476,6 +506,35 @@ with tab_exec:
         "Visão Executiva",
         "Próxima ação recomendada e resumo da posição financeira na entrega das chaves.",
     )
+
+    st.subheader("Controle real mensal")
+
+    editable_df = construction_df.copy()
+
+    editable_df["Real Savings"] = [
+        real_data[int(row["Month"])]["savings"]
+        for _, row in construction_df.iterrows()
+    ]
+
+    editable_df["Real Evolution"] = [
+        real_data[int(row["Month"])]["evolution"]
+        for _, row in construction_df.iterrows()
+    ]
+
+    edited_df = st.data_editor(
+        editable_df[["Month", "Poupança Gerada", "Real Savings", "Real Evolution"]],
+        num_rows="fixed",
+        use_container_width=True
+    )
+
+    for _, row in edited_df.iterrows():
+        month = int(row["Month"])
+
+        real_data[month]["savings"] = float(row["Real Savings"])
+        real_data[month]["evolution"] = float(row["Real Evolution"])
+
+    # salva no arquivo
+    save_real_data(real_data)
 
     # 1. PRÓXIMA AÇÃO RECOMENDADA
     has_high_stress = bool((construction_df["Stress Ratio"] > 0.7).any())
