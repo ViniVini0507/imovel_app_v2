@@ -372,24 +372,28 @@ with tab_control:
     # ==============================
     # TABELA (EXCEL)
     # ==============================
-    edited_df = st.data_editor(
-        editable_df[["Month", "Monthly Savings", "Real Savings", "Real Evolution"]],
-        num_rows="fixed",
-        use_container_width=True,
-        key="control_table"
-    )
+    editable_df = construction_df.copy()
 
-    edited_df.columns = [
-        "Mês",
-        "Poupança planejada",
-        "Poupança real",
-        "Evolução real"
+    # garante coluna estável
+    editable_df["Month"] = construction_df["Month"]
+
+    editable_df["Real Savings"] = [
+        real_data.get(int(row["Month"]), {}).get("savings", float(row["Monthly Savings"]))
+        for _, row in construction_df.iterrows()
     ]
 
-    # ==============================
-    # SALVAR (JSON)
-    # ==============================
-    for _, row in edited_df.iterrows():
+    editable_df["Real Evolution"] = [
+        real_data.get(int(row["Month"]), {}).get("evolution", float(row["Construction Evolution"]))
+        for _, row in construction_df.iterrows()
+    ]
+
+    edited_df = st.data_editor(
+        editable_df[["Month", "Real Savings", "Real Evolution"]],
+        use_container_width=True
+    )
+
+    # salvar seguro
+    for idx, row in edited_df.iterrows():
         month = int(row["Month"])
 
         if month not in real_data:
@@ -399,6 +403,7 @@ with tab_control:
         real_data[month]["evolution"] = float(row["Real Evolution"])
 
     save_real_data(real_data)
+
 
     # ==============================
     # MÉTRICAS
