@@ -46,11 +46,10 @@ from finance.amortization import generate_amortization_schedule, simulate_extra_
 from investments.portfolio import simulate_portfolio, get_current_allocation
 from investments.monte_carlo import simulate_monte_carlo, explain_monte_carlo
 from renovation.renovation_engine import estimate_renovation_cost
-from risk.risk_engine import full_risk_assessment
 from optimizer.decision_engine import generate_decision_strategies
 
 from ui.styles import apply_global_styles
-from ui.components import money, pct, status_badge, section
+from ui.components import money, pct, section
 from ui.charts import (
     cashflow_stacked_chart,
     portfolio_composition_chart,
@@ -58,7 +57,6 @@ from ui.charts import (
     renovation_pie_chart,
     amortization_chart,
     strategy_score_chart,
-    risk_heatmap,
 )
 
 
@@ -91,47 +89,6 @@ def render_savings_indicator(projected_cash_at_keys: float, renovation_cost: flo
         )
 
     return gap
-
-
-def render_stress_warnings(construction_df: pd.DataFrame) -> bool:
-    """Identifica meses com Stress Ratio > 0.7 e explica o que isso significa. Retorna se há estresse alto."""
-    st.markdown("#### 🌡️ Estresse financeiro mês a mês")
-    st.caption(
-        "Razão de estresse = quanto do seu orçamento mensal está sendo consumido. "
-        "Se a razão de estresse > 0.7, você está forçando demais o orçamento — "
-        "ou seja, sobra pouca margem para imprevistos naquele mês."
-    )
-
-    high_stress_months = construction_df.loc[construction_df["Stress Ratio"] > 0.7, "Month"].tolist()
-    has_high_stress = len(high_stress_months) > 0
-
-    if has_high_stress:
-        months_str = ", ".join(str(int(m)) for m in high_stress_months)
-        st.warning(f"⚠️ Estresse financeiro elevado no(s) mês(es): {months_str}.")
-    else:
-        st.success("✅ Nenhum mês com estresse financeiro elevado (> 0.7).")
-
-    return has_high_stress
-
-
-def render_next_action(has_high_stress: bool, gap: float) -> None:
-    """Painel 'Próxima ação recomendada' — topo da aba Geral."""
-    if has_high_stress:
-        icon, action = "🟡", "Reduza a poupança temporariamente para aliviar a pressão financeira nos meses de pico."
-    elif gap < 0:
-        icon, action = "🔴", "Aumente a poupança mensal ou reduza o escopo da reforma."
-    else:
-        icon, action = "🟢", "Continue no plano atual ou considere alocar o caixa extra para amortizar o financiamento."
-
-    st.markdown(
-        f"""
-        <div class="section-card">
-        <h4 style="margin-top:0;">{icon} Próxima ação recomendada</h4>
-        <p style="font-size: 1.05rem; margin-bottom:0;">{action}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 def render_savings_simulator(months_until_keys: int, renovation_cost: float) -> None:
@@ -298,6 +255,15 @@ construction_df = simulate_construction_phase(
 
 real_data = load_real_data(construction_df)
 
+renovation_df = estimate_renovation_cost(
+    apartment_size_m2=profile.apartment_size_m2 or 50,
+    package=renovation_package,
+    months_until_keys=profile.months_until_keys,
+    annual_inflation=annual_inflation,
+    num_ares=num_ares,
+)
+renovation_cost = float(renovation_df["Inflated Cost"].sum())
+
 # ============================
 # TABS (criadas cedo de propósito: o data_editor da Controladoria precisa
 # rodar e gravar no session_state ANTES do recálculo de portfólio/Monte Carlo
@@ -348,81 +314,174 @@ controladoria_df = pd.DataFrame({
 with tab_control:
     section(
         "Controladoria mensal",
-        "Edite 'Poupança real' e 'Evolução real da obra' conforme o mês acontece. "
-        "Os outros valores do app recalculam automaticamente.",
+        "Atualize mês a mês. O restante do app recalcula automaticamente.",
     )
 
-    st.subheader("Controle real mensal")
+    st.subheader("📊 Controle mensal (modo operacional)")
+
+    # ==============================
+    # PARÂMETROS
+    # ==============================
+    current_month = st.number_input(
+        "Mês atual",
+        min_value=1,
+        max_value=len(construction_df),
+        value=1,
+        step=1
+    )
 
     # ==============================
     # BASE
-    # ==============================      
-    editable_df = construction_df.copy()
-
-    editable_df["Real Savings"] = [
-        real_data.get(int(row["Month"]), {}).get("savings", float(row["Monthly Savings"]))
-        for _, row in construction_df.iterrows()
-    ]
-
-    editable_df["Real Evolution"] = [
-        real_data.get(int(row["Month"]), {}).get("evolution", float(row["Construction Evolution"]))
-        for _, row in construction_df.iterrows()
-    ]
-
-    # ==============================
-    # TABELA (EXCEL)
     # ==============================
     editable_df = construction_df.copy()
 
-    # garante coluna estável
     editable_df["Month"] = construction_df["Month"]
 
+    editable_df["Planned Savings"] = construction_df["Monthly Savings"]
+
     editable_df["Real Savings"] = [
         real_data.get(int(row["Month"]), {}).get("savings", float(row["Monthly Savings"]))
         for _, row in construction_df.iterrows()
     ]
 
-    editable_df["Real Evolution"] = [
-        real_data.get(int(row["Month"]), {}).get("evolution", float(row["Construction Evolution"]))
-        for _, row in construction_df.iterrows()
-    ]
+    # ==============================
+    # CONTROLAR EDIÇÃO
+    # ==============================
+    def is_editable(month):
+        return month <= current_month
 
+    editable_mask = editable_df["Month"].apply(is_editable)
+
+    # ==============================
+    # DATA EDITOR COM UX MELHOR
+    # ==============================
     edited_df = st.data_editor(
-        editable_df[["Month", "Real Savings", "Real Evolution"]],
-        use_container_width=True
+        editable_df[["Month", "Planned Savings", "Real Savings"]],
+        use_container_width=True,
+        num_rows="fixed",
+        column_config={
+            "Month": st.column_config.NumberColumn("Mês", disabled=True),
+            "Planned Savings": st.column_config.NumberColumn(
+                "Planejado (R$)", disabled=True, format="R$ %.0f"
+            ),
+            "Real Savings": st.column_config.NumberColumn(
+                "Real (R$)",
+                format="R$ %.0f",
+                step=100.0,
+                min_value=0.0
+            ),
+        },
+        key="control_editor"
     )
 
-    # salvar seguro
-    for idx, row in edited_df.iterrows():
+    # ==============================
+    # SALVAR JSON
+    # ==============================
+    for _, row in edited_df.iterrows():
         month = int(row["Month"])
 
-        if month not in real_data:
-            real_data[month] = {}
+        if month <= current_month:
+            if month not in real_data:
+                real_data[month] = {}
 
-        real_data[month]["savings"] = float(row["Real Savings"])
-        real_data[month]["evolution"] = float(row["Real Evolution"])
+            real_data[month]["savings"] = float(row["Real Savings"])
 
     save_real_data(real_data)
 
-
     # ==============================
-    # MÉTRICAS
+    # MÉTRICAS OPERACIONAIS
     # ==============================
-    total_planned = float(construction_df["Monthly Savings"].sum())
-    total_real = float(edited_df["Real Savings"].sum())
+    real_series = pd.Series([
+        real_data.get(int(row["Month"]), {}).get(
+            "savings",
+            float(row["Monthly Savings"])
+        )
+        for _, row in construction_df.iterrows()
+    ])
 
-    delta = total_real - total_planned
+    planned_total = construction_df["Monthly Savings"].cumsum()
+    real_total = real_series.cumsum()
 
-    st.metric(
-        "Poupança acumulada (real vs planejado)",
-        money(total_real),
-        delta=money(delta)
+    gap_series = real_total - planned_total
+
+    current_gap = gap_series.iloc[current_month - 1]
+
+    c1, c2, c3 = st.columns(3)
+
+    c1.metric(
+        "Total planejado até agora",
+        money(planned_total.iloc[current_month - 1])
     )
 
-    if delta < 0:
-        st.warning(f"Você está {money(abs(delta))} abaixo do plano.")
+    c2.metric(
+        "Total real",
+        money(real_total.iloc[current_month - 1])
+    )
+
+    c3.metric(
+        "Desvio do plano",
+        money(current_gap),
+        delta=money(current_gap)
+    )
+
+    # ==============================
+    # STATUS DO PLANO
+    # ==============================
+    if current_gap < -3000:
+        st.error("❌ Você está atrasado no plano — precisa compensar")
+    elif current_gap < 0:
+        st.warning("⚠️ Ligeiramente abaixo — monitorar")
     else:
-        st.success(f"Você está {money(delta)} acima do plano.")
+        st.success("✅ Dentro ou acima do plano")
+
+    # ==============================
+    # MÉDIA REAL (INSIGHT)
+    # ==============================
+    avg_real = real_series.iloc[:current_month].mean()
+
+    st.info(
+        f"Média real até agora: {money(avg_real)} por mês"
+    )
+
+    # ==============================
+    # FORECAST REAL (GAME CHANGER)
+    # ==============================
+    remaining_months = len(construction_df) - current_month
+
+    forecast_total = real_total.iloc[current_month - 1] + avg_real * remaining_months
+
+    st.subheader("🔮 Se continuar assim")
+
+    st.metric(
+        "Previsão de caixa nas chaves",
+        money(forecast_total)
+    )
+
+    # ==============================
+    # DECISÃO
+    # ==============================
+    effective_renovation_cash = renovation_cost * renovation_cash_ratio
+    essential_need = effective_renovation_cash + (monthly_living_expenses * 6)
+
+    forecast_gap = forecast_total - essential_need
+
+    st.metric(
+        "Folga prevista",
+        money(forecast_gap)
+    )
+
+    if forecast_gap < 0:
+        st.error(
+            "❌ Nesse ritmo você NÃO chega → aumente a poupança"
+        )
+    elif forecast_gap < 10000:
+        st.warning(
+            "⚠️ Chega no limite → ideal aumentar um pouco"
+        )
+    else:
+        st.success(
+            "✅ Está confortável → pode manter estratégia"
+        )
 
 
 # Mantemos apenas os campos já calculados pelo modelo financeiro central.
@@ -451,14 +510,6 @@ mc = simulate_monte_carlo(
     simulations=monte_carlo_runs,
 )
 
-renovation_df = estimate_renovation_cost(
-    apartment_size_m2=profile.apartment_size_m2 or 50,
-    package=renovation_package,
-    months_until_keys=profile.months_until_keys,
-    annual_inflation=annual_inflation,
-    num_ares=num_ares,
-)
-
 amortization_df = generate_amortization_schedule(
     system=profile.financing_system,
     principal=profile.financing_ceiling,
@@ -482,19 +533,6 @@ investment_gain = float(portfolio_df["Investment Gain"].iloc[-1])
 renovation_cost = float(renovation_df["Inflated Cost"].sum())
 renovation_coverage = projected_cash_at_keys / renovation_cost if renovation_cost else 0
 gap = projected_cash_at_keys - renovation_cost
-
-avg_stress_ratio = float(construction_df["Stress Ratio"].mean())
-max_stress_ratio = float(construction_df["Stress Ratio"].max())
-peak_stress_month = int(construction_df.sort_values("Stress Ratio", ascending=False).iloc[0]["Month"])
-
-risk = full_risk_assessment(
-    first_installment=profile.approved_first_installment,
-    household_income=profile.household_income,
-    avg_stress_ratio=avg_stress_ratio,
-    max_stress_ratio=max_stress_ratio,
-    projected_cash=projected_cash_at_keys,
-    renovation_cost=renovation_cost,
-)
 
 
 strategies_df = generate_decision_strategies(
@@ -626,7 +664,6 @@ with tab_cashflow:
     key="cashflow_chart"
     )
 
-    render_stress_warnings(construction_df)
     st.divider()
 
     construction_display = construction_df.rename(columns={
@@ -638,8 +675,6 @@ with tab_cashflow:
         "Monthly Savings": "Poupança mensal",
         "Accumulated Savings": "Poupança acumulada",
         "Real Monthly Spending": "Gasto real mensal",
-        "Stress Amount": "Valor de estresse",
-        "Stress Ratio": "Razão de estresse",
     })
 
     st.dataframe(
@@ -651,8 +686,6 @@ with tab_cashflow:
             "Poupança mensal": "R$ {:,.2f}",
             "Poupança acumulada": "R$ {:,.2f}",
             "Gasto real mensal": "R$ {:,.2f}",
-            "Valor de estresse": "R$ {:,.2f}",
-            "Razão de estresse": "{:.2f}",
         }),
         use_container_width=True,
         hide_index=True,
@@ -662,7 +695,7 @@ with tab_cashflow:
 with tab_investments:
     section(
         "Investimentos",
-        "Alocação dinâmica da estratégia de risco, passando de equilibrada para ultra-conservadora conforme a entrega se aproxima.",
+        "Alocação dinâmica de portfólio conforme a entrega se aproxima.",
     )
 
     c1, c2, c3 = st.columns(3)
@@ -960,50 +993,11 @@ with tab_decision:
 
 with tab_risk:
     section(
-        "Avaliação de risco",
-        "Combina comprometimento da renda, estresse da poupança e cobertura da reforma em uma nota de 0 a 100.",
+        "Risco",
+        "Espaço reservado para conteúdos de risco futuros.",
     )
 
-    st.plotly_chart(
-        risk_heatmap(risk),
-        use_container_width=True,
-        key="risk_heatmap_tab"
-        )
-
-    c1, c2, c3, c4 = st.columns(4)
-
-    c1.metric(
-        "Compromisso com a renda",
-        pct(risk["income_commitment"]["ratio"]),
-        status_badge(risk["income_commitment"]["status"]),
-    )
-
-    c2.metric(
-        "Estresse da poupança",
-        f'{risk["savings_stress"]["score"]:.1f}/100',
-        status_badge(risk["savings_stress"]["status"]),
-    )
-
-    renovation_coverage_ratio = float(
-        risk["renovation_coverage"]["coverage"]
-        if risk["renovation_coverage"]["coverage"] is not None
-        else 0
-    )
-
-    c3.metric(
-        "Cobertura da reforma",
-        pct(renovation_coverage_ratio),
-        delta=(
-            f"{(renovation_coverage_ratio - 1) * 100:.1f}% "
-            f"({status_badge(risk['renovation_coverage']['status'])})"
-        ),
-    )
-
-    c4.metric(
-        "Risco geral",
-        f'{risk["overall"]["score"]:.1f}/100',
-        status_badge(risk["overall"]["status"]),
-    )
+    st.info("A aba de risco está pronta, mas o conteúdo será atualizado depois.")
 
 
 with tab_data:
