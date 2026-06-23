@@ -351,8 +351,8 @@ with tab_control:
         "Edite 'Poupança real' e 'Evolução real da obra' conforme o mês acontece. "
         "Os outros valores do app recalculam automaticamente.",
     )
-
-     st.subheader("Controle real mensal")
+ 
+    st.subheader("Controle real mensal")
 
     editable_df = construction_df.copy()
 
@@ -382,7 +382,7 @@ with tab_control:
     save_real_data(real_data)
 
     ##########
-    
+
     edited_controladoria_df = st.data_editor(
         controladoria_df,
         column_config={
