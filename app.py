@@ -351,83 +351,66 @@ with tab_control:
         "Edite 'Poupança real' e 'Evolução real da obra' conforme o mês acontece. "
         "Os outros valores do app recalculam automaticamente.",
     )
- 
+
     st.subheader("Controle real mensal")
 
+    # ==============================
+    # BASE
+    # ==============================
     editable_df = construction_df.copy()
 
     editable_df["Real Savings"] = [
-        real_data[int(row["Month"])]["savings"]
+        real_data.get(int(row["Month"]), {}).get("savings", float(row["Monthly Savings"]))
         for _, row in construction_df.iterrows()
     ]
 
     editable_df["Real Evolution"] = [
-        real_data[int(row["Month"])]["evolution"]
+        real_data.get(int(row["Month"]), {}).get("evolution", float(row["Construction Evolution"]))
         for _, row in construction_df.iterrows()
     ]
 
+    # ==============================
+    # TABELA (EXCEL)
+    # ==============================
     edited_df = st.data_editor(
         editable_df[["Month", "Poupança Gerada", "Real Savings", "Real Evolution"]],
         num_rows="fixed",
-        use_container_width=True
+        use_container_width=True,
+        key="control_table"
     )
 
+    # ==============================
+    # SALVAR (JSON)
+    # ==============================
     for _, row in edited_df.iterrows():
         month = int(row["Month"])
+
+        if month not in real_data:
+            real_data[month] = {}
 
         real_data[month]["savings"] = float(row["Real Savings"])
         real_data[month]["evolution"] = float(row["Real Evolution"])
 
-    # salva no arquivo
     save_real_data(real_data)
 
-    ##########
+    # ==============================
+    # MÉTRICAS
+    # ==============================
+    total_planned = float(construction_df["Monthly Savings"].sum())
+    total_real = float(edited_df["Real Savings"].sum())
 
-    edited_controladoria_df = st.data_editor(
-        controladoria_df,
-        column_config={
-            "Month": st.column_config.NumberColumn("Mês", disabled=True),
-            "Planned Monthly Savings": st.column_config.NumberColumn(
-                "Poupança planejada (R$)", disabled=True, format="R$ %.2f",
-            ),
-            "Real Monthly Savings": st.column_config.NumberColumn(
-                "Poupança real (R$)", format="R$ %.2f", step=50.0, min_value=0.0,
-            ),
-            "Planned Construction Evolution": st.column_config.NumberColumn(
-                "Evolução planejada (R$)", disabled=True, format="R$ %.2f",
-            ),
-            "Construction Evolution": st.column_config.NumberColumn(
-                "Evolução real da obra (R$)", format="R$ %.2f", step=50.0, min_value=0.0,
-            ),
-        },
-        hide_index=True,
-        use_container_width=True,
-        num_rows="fixed",
-        key="controladoria_editor",
+    delta = total_real - total_planned
+
+    st.metric(
+        "Poupança acumulada (real vs planejado)",
+        money(total_real),
+        delta=money(delta)
     )
 
-    # Persiste de volta no session_state — isso é o que faz tudo recalcular.
-    for _, row in edited_controladoria_df.iterrows():
-        m = int(row["Month"])
-        st.session_state.real_contributions[m] = float(row["Real Monthly Savings"])
-        st.session_state.real_evolution[m] = float(row["Construction Evolution"])
-
-    total_planned_savings = float(controladoria_df["Planned Monthly Savings"].sum())
-    total_real_savings = float(edited_controladoria_df["Real Monthly Savings"].sum())
-    savings_delta = total_real_savings - total_planned_savings
-
-    total_planned_evolution = float(controladoria_df["Planned Construction Evolution"].sum())
-    total_real_evolution = float(edited_controladoria_df["Construction Evolution"].sum())
-    evolution_delta = total_real_evolution - total_planned_evolution
-
-    c1, c2 = st.columns(2)
-    c1.metric("Poupança acumulada (real vs. planejado)", money(total_real_savings), delta=money(savings_delta))
-    c2.metric("Evolução da obra (real vs. planejado)", money(total_real_evolution), delta=money(evolution_delta))
-
-    if savings_delta < 0:
-        st.warning(f"Você está {money(abs(savings_delta))} abaixo do planejado em poupança acumulada.")
+    if delta < 0:
+        st.warning(f"Você está {money(abs(delta))} abaixo do plano.")
     else:
-        st.success(f"Você está {money(savings_delta)} acima do planejado em poupança acumulada.")
+        st.success(f"Você está {money(delta)} acima do plano.")
 
 
 # Mantemos apenas os campos já calculados pelo modelo financeiro central.
@@ -440,11 +423,7 @@ construction_df["Desembolso Real"] = construction_df["Real Monthly Spending"]
 # e (via projected_cash_at_keys) para o decision_engine logo abaixo.
 # ============================
 real_contributions_series = pd.Series([
-    st.session_state.real_contributions[m] for m in months_list
-])
-
-real_contributions_series = pd.Series([
-    real_data[int(row["Month"])]["savings"]
+    real_data.get(int(row["Month"]), {}).get("savings", float(row["Monthly Savings"]))
     for _, row in construction_df.iterrows()
 ])
 
