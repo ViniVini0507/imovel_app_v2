@@ -352,6 +352,37 @@ with tab_control:
         "Os outros valores do app recalculam automaticamente.",
     )
 
+     st.subheader("Controle real mensal")
+
+    editable_df = construction_df.copy()
+
+    editable_df["Real Savings"] = [
+        real_data[int(row["Month"])]["savings"]
+        for _, row in construction_df.iterrows()
+    ]
+
+    editable_df["Real Evolution"] = [
+        real_data[int(row["Month"])]["evolution"]
+        for _, row in construction_df.iterrows()
+    ]
+
+    edited_df = st.data_editor(
+        editable_df[["Month", "Poupança Gerada", "Real Savings", "Real Evolution"]],
+        num_rows="fixed",
+        use_container_width=True
+    )
+
+    for _, row in edited_df.iterrows():
+        month = int(row["Month"])
+
+        real_data[month]["savings"] = float(row["Real Savings"])
+        real_data[month]["evolution"] = float(row["Real Evolution"])
+
+    # salva no arquivo
+    save_real_data(real_data)
+
+    ##########
+    
     edited_controladoria_df = st.data_editor(
         controladoria_df,
         column_config={
@@ -507,81 +538,89 @@ with tab_exec:
         "Próxima ação recomendada e resumo da posição financeira na entrega das chaves.",
     )
 
-    st.subheader("Controle real mensal")
+   
+    st.subheader("Resumo financeiro real")
 
-    editable_df = construction_df.copy()
+    # ======================
+    # NECESSIDADE REAL
+    # ======================
+    effective_renovation_cash = renovation_cost * renovation_cash_ratio
+    essential_need = effective_renovation_cash + (monthly_living_expenses * 6)
 
-    editable_df["Real Savings"] = [
-        real_data[int(row["Month"])]["savings"]
-        for _, row in construction_df.iterrows()
-    ]
+    gap = projected_cash_at_keys - essential_need
 
-    editable_df["Real Evolution"] = [
-        real_data[int(row["Month"])]["evolution"]
-        for _, row in construction_df.iterrows()
-    ]
-
-    edited_df = st.data_editor(
-        editable_df[["Month", "Poupança Gerada", "Real Savings", "Real Evolution"]],
-        num_rows="fixed",
-        use_container_width=True
-    )
-
-    for _, row in edited_df.iterrows():
-        month = int(row["Month"])
-
-        real_data[month]["savings"] = float(row["Real Savings"])
-        real_data[month]["evolution"] = float(row["Real Evolution"])
-
-    # salva no arquivo
-    save_real_data(real_data)
-
-    # 1. PRÓXIMA AÇÃO RECOMENDADA
-    has_high_stress = bool((construction_df["Stress Ratio"] > 0.7).any())
-    render_next_action(has_high_stress, gap)
-    st.caption(
-        f"Estratégia recomendada: **{best_strategy_label}** — "
-        f"{money(best_strategy['Emergency Reserve'])} reserva, "
-        f"{money(best_strategy['Renovation (Cash Used)'])} reforma, "
-        f"{money(best_strategy['Loan Amortization'])} amortização."
-    )
-
-    st.divider()
-
-    # 2. SAÚDE FINANCEIRA (gap + estresse)
-    render_savings_indicator(projected_cash_at_keys, renovation_cost, profile.months_until_keys)
-    st.markdown("")
-    render_stress_warnings(construction_df)
-
-    st.divider()
-
-    # 3. PROJEÇÃO NAS CHAVES (portfólio)
-    st.markdown("#### 📈 Projeção do portfólio até as chaves")
     c1, c2, c3 = st.columns(3)
-    c1.metric("Caixa projetado nas chaves", money(projected_cash_at_keys))
-    c2.metric("Ganhos de investimento", money(investment_gain))
-    c3.metric("P50 do Monte Carlo", money(mc["p50"]))
 
-    st.plotly_chart(
-        portfolio_composition_chart(portfolio_df),
-        use_container_width=True,
-        key="portfolio_cockpit",
+    c1.metric("Caixa projetado", money(projected_cash_at_keys))
+    c2.metric("Necessidade real", money(essential_need))
+    c3.metric("Folga", money(gap))
+
+
+    # ======================
+    # TRAJETÓRIA REAL vs PLANO
+    # ======================
+    st.subheader("Acompanhamento do plano")
+
+    planned_total = construction_df["Monthly Savings"].cumsum()
+    real_total = real_contributions_series.cumsum()
+
+    trajectory_gap = real_total - planned_total
+    current_gap = trajectory_gap.iloc[-1]
+
+    st.metric(
+        "Desvio acumulado do plano",
+        money(current_gap),
+        delta=money(current_gap)
     )
 
-    st.divider()
+    if current_gap < -5000:
+        st.error("❌ Você está atrasado no plano")
+    elif current_gap < 0:
+        st.warning("⚠️ Ligeiramente abaixo do plano")
+    else:
+        st.success("✅ Dentro ou acima do plano")
 
-    # 4. INDICADORES DE RISCO
-    st.markdown("#### ⚠️ Indicadores de risco")
-    c4, c5, c6 = st.columns(3)
-    c4.metric("Score de risco geral", f'{risk["overall"]["score"]}/100', status_badge(risk["overall"]["status"]))
-    c5.metric("Mês de pico de estresse", f"Mês {peak_stress_month}")
-    c6.metric("Cobertura de reforma", pct(renovation_coverage))
 
-    st.plotly_chart(
-        risk_heatmap(risk),
-        use_container_width=True,
-        key="risk_heatmap_cockpit",
-    )
+    # ======================
+    # FORECAST BASEADO NO REAL
+    # ======================
+    st.subheader("Se continuar assim...")
+
+    avg_real_saving = real_contributions_series.mean()
+
+    months_total = profile.months_until_keys
+    months_done = len(real_contributions_series)
+    remaining_months = months_total - months_done
+
+    forecast_total = real_total.iloc[-1] + avg_real_saving * remaining_months
+    forecast_gap = forecast_total - essential_need
+
+    st.metric("Previsão nas chaves", money(forecast_total))
+    st.metric("Folga prevista", money(forecast_gap))
+
+
+    # ======================
+    # DECISÃO REAL
+    # ======================
+    st.subheader("Próxima decisão")
+
+    if forecast_gap < 0:
+        st.error(
+            "❌ Mantendo esse ritmo você NÃO chega. "
+            "→ Aumente sua poupança mensal"
+        )
+
+    elif forecast_gap < monthly_living_expenses * 3:
+        st.warning(
+            "⚠️ Você chega no limite. "
+            "→ Melhor aumentar um pouco a poupança"
+        )
+
+    else:
+        st.success(
+            "✅ Você está bem. "
+            "→ Pode manter ou otimizar investimentos"
+        )
 
 
 with tab_cashflow:
