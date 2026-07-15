@@ -4,20 +4,27 @@ from notion_client import Client
 
 @st.cache_data(ttl=300) 
 def fetch_notion_data(notion_token: str, database_id: str) -> pd.DataFrame:
-    """Conecta na API do Notion e extrai o banco de dados bruto."""
+    """Conecta na API do Notion e extrai o banco de dados bruto usando requisição direta."""
     notion = Client(auth=notion_token)
     
     results = []
-    # ATUALIZAÇÃO DA API: databases virou data_sources
-    query = notion.data_sources.query(data_source_id=database_id)
-    results.extend(query.get("results"))
     
-    while query.get("has_more"):
-        query = notion.data_sources.query(
-            data_source_id=database_id, 
-            start_cursor=query.get("next_cursor")
+    # REQUISIÇÃO DIRETA: Ignoramos os erros da biblioteca e mandamos a chamada crua
+    response = notion.request(
+        path=f"databases/{database_id}/query",
+        method="POST"
+    )
+    
+    results.extend(response.get("results", []))
+    
+    # Paginação: Caso você passe de 100 meses no futuro
+    while response.get("has_more"):
+        response = notion.request(
+            path=f"databases/{database_id}/query",
+            method="POST",
+            body={"start_cursor": response.get("next_cursor")}
         )
-        results.extend(query.get("results"))
+        results.extend(response.get("results", []))
         
     rows = []
     for item in results:
@@ -59,7 +66,6 @@ def recalculate_forecast(df: pd.DataFrame, gap_inicial: float, aporte_padrao: fl
     
     if meses_restantes > 0:
         parcela_projetada = saldo_gap / meses_restantes
-        # Substitui apenas os meses 'Projetado' com a nova parcela rateada
         df.loc[~is_fechado, "Prestação Construtora"] = parcela_projetada
 
     # 2. Tratamento do Aporte Mensal do Casal
