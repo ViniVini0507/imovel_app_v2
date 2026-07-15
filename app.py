@@ -557,10 +557,10 @@ with tab_cashflow:
     # Cria uma cópia para não afetar o resto do app
     construction_display = construction_df.copy()
     
-    # Recria a coluna Aporte Casal (Custo Total + Poupança Gerada) para bater com o Notion
+    # Recria a coluna Aporte Casal (Custo Total + Poupança Gerada)
     construction_display["Aporte Casal"] = construction_display["Real Monthly Spending"] + construction_display["Monthly Savings"]
     
-    # Renomeia as colunas para a exata nomenclatura que você usa
+    # Renomeia as colunas 
     construction_display = construction_display.rename(columns={
         "Month": "Mês",
         "Builder Installment": "Prestação Construtora",
@@ -570,7 +570,7 @@ with tab_cashflow:
         "Accumulated Savings": "Poupança Acumulada",
     })
 
-    # Define a sequência exata de exibição (da esquerda para a direita)
+    # Ordem exata das colunas
     col_order = [
         "Mês",
         "Prestação Construtora",
@@ -581,15 +581,19 @@ with tab_cashflow:
         "Poupança Acumulada"
     ]
 
+    # Prepara o DataFrame final
+    df_formatado = construction_display[col_order].copy()
+    
+    # Formatação blindada (transforma os números em strings no padrão PT-BR)
+    for col in df_formatado.columns:
+        if col != "Mês":
+            df_formatado[col] = df_formatado[col].apply(
+                lambda x: f"R$ {float(x):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            )
+
+    # Renderiza a tabela nativa
     st.dataframe(
-        construction_display[col_order].style.format({
-            "Prestação Construtora": "R$ {:,.2f}",
-            "Evolução de Obra (EO)": "R$ {:,.2f}",
-            "Custo Total": "R$ {:,.2f}",
-            "Aporte Casal": "R$ {:,.2f}",
-            "Poupança Mensal": "R$ {:,.2f}",
-            "Poupança Acumulada": "R$ {:,.2f}",
-        }),
+        df_formatado,
         use_container_width=True,
         hide_index=True,
     )
