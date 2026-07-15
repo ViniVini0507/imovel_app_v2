@@ -264,6 +264,41 @@ renovation_df = estimate_renovation_cost(
 )
 renovation_cost = float(renovation_df["Inflated Cost"].sum())
 
+# =====================================================================
+# MOTOR DE SIMULAÇÃO: Mesclando Notion (Base) com Sidebar (Input)
+# =====================================================================
+
+# 1. Puxa os dados base do Notion para as colunas fixas
+limit = min(len(df_controle), len(construction_df))
+construction_df.loc[:limit-1, "Builder Installment"] = df_controle["Parcela Construtora (R$)"].iloc[:limit].values
+construction_df.loc[:limit-1, "Amortização"] = df_controle["Amortização"].iloc[:limit].values
+
+# 2. Aplica a Lógica de Simulação na Evolução de Obra (EO)
+# Reseta a EO para 0 antes do mês de início
+construction_df.loc[construction_df["Month"] < inicio_eo, "Construction Evolution"] = 0
+
+# Aplica a Curva em S (Simples: começa baixo, cresce no meio, cai no fim)
+if curva_eo == "Curva em S":
+    # Apenas como exemplo de lógica: você pode ajustar a fórmula
+    fator = (construction_df["Month"] - inicio_eo) / (len(construction_df) - inicio_eo)
+    # Exemplo de curva: aplica um % sobre o saldo devedor ou um valor fixo
+    construction_df.loc[construction_df["Month"] >= inicio_eo, "Construction Evolution"] = (fator * 5000).clip(0, 5000)
+else:
+    # Lógica linear simples se não for Curva em S
+    construction_df.loc[construction_df["Month"] >= inicio_eo, "Construction Evolution"] = 1500
+
+# 3. Recalcula a Poupança e o Desembolso baseado no seu Orçamento da Sidebar
+# Poupança = Orçamento Total - (Prestação + Amortização + EO)
+construction_df["Real Monthly Spending"] = (
+    construction_df["Builder Installment"] + 
+    construction_df["Amortização"] + 
+    construction_df["Construction Evolution"]
+)
+construction_df["Monthly Savings"] = orcamento_total - construction_df["Real Monthly Spending"]
+
+# 4. Atualiza a Acumulada
+construction_df["Accumulated Savings"] = construction_df["Monthly Savings"].cumsum()
+
 # ============================
 # TABS (criadas cedo de propósito: o data_editor da Controladoria precisa
 # rodar e gravar no session_state ANTES do recálculo de portfólio/Monte Carlo
