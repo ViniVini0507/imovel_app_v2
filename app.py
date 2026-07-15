@@ -269,6 +269,14 @@ renovation_cost = float(renovation_df["Inflated Cost"].sum())
 # rodar e gravar no session_state ANTES do recálculo de portfólio/Monte Carlo
 # logo abaixo — senão a edição só refletiria no próximo rerun do Streamlit)
 # ============================
+def converter_mes(mes_numero):
+    """Traduz o número do mês (1 a 30) para o rótulo real (Jul/2026 a Dez/2028)"""
+    meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    idx = int(mes_numero) - 1
+    mes_nome = meses[(6 + idx) % 12]  # 6 representa Julho (índice 6)
+    ano = 2026 + ((6 + idx) // 12)
+    return f"{mes_nome}/{ano}"
+
 tab_control, tab_exec, tab_cashflow, tab_investments, tab_financing, tab_renovation, tab_decision, tab_risk, tab_data = st.tabs(
     [
         "📋 Controladoria",
@@ -328,11 +336,14 @@ with tab_control:
         # 4. Gráfico Empilhado (Exclusivo da Controladoria)
         st.markdown("### Composição Mensal e Alertas de Risco")
         
+        # Aplica a conversão de datas no Eixo X
+        df_controle['Mês Formatado'] = df_controle['Mês'].apply(converter_mes)
+        
         fig = px.bar(
             df_controle, 
-            x='Mês', 
+            x='Mês Formatado', 
             y=['Parcela Construtora (R$)', 'Poupança Gerada (R$)', 'Evolução de Obra (R$)'],
-            labels={'value': 'Orçamento Mensal (R$)', 'variable': 'Composição'},
+            labels={'value': 'Orçamento Mensal (R$)', 'variable': 'Composição', 'Mês Formatado': 'Mês'},
             color_discrete_map={
                 'Parcela Construtora (R$)': '#1f77b4',  
                 'Poupança Gerada (R$)': '#2ca02c',       
@@ -345,13 +356,13 @@ with tab_control:
         fig.add_hline(y=renda_casal * 0.50, line_dash="dash", line_color="red", annotation_text="🚨 50% da Renda")
 
         fig.add_scatter(
-            x=df_controle['Mês'], y=df_controle['Desembolso Real do Mês (R$)'],
+            x=df_controle['Mês Formatado'], y=df_controle['Desembolso Real do Mês (R$)'],
             mode='lines', line=dict(color='rgba(0,0,0,0)'), name='Total do Mês (Custo)',
             hovertemplate="<b>R$ %{y:,.2f}</b>"
         )
 
         fig.update_layout(
-            barmode='stack', legend_title_text='', xaxis_title="Meses até as Chaves",
+            barmode='stack', legend_title_text='', xaxis_title="Cronograma até as Chaves",
             hovermode="x unified", hoverlabel=dict(bgcolor="#1E1E1E", font_size=14, font_family="sans-serif")
         )
         fig.update_traces(hovertemplate="<b>R$ %{y:,.2f}</b>", selector=dict(type='bar'))
@@ -604,22 +615,27 @@ with tab_exec:
 
 
 with tab_cashflow:
+with tab_cashflow:
     section(
         "Fase de construção — fluxo de caixa",
         "Acompanha a evolução mensal da obra, a poupança obrigatória, a pressão de gastos e o saldo acumulado.",
     )
 
+    # 1. Gráfico com meses formatados
+    df_grafico = construction_df.copy()
+    df_grafico["Month"] = df_grafico["Month"].apply(converter_mes)
+
     st.plotly_chart(
-    cashflow_stacked_chart(construction_df, renda=profile.household_income),
-    use_container_width=True,
-    key="cashflow_chart"
+        cashflow_stacked_chart(df_grafico, renda=profile.household_income),
+        use_container_width=True,
+        key="cashflow_chart"
     )
 
     st.divider()
 
+    # 2. Tabela com meses formatados
     construction_display = construction_df.copy()
     
-    # Prevenção caso a coluna fique vazia nos meses futuros
     if "Amortização" not in construction_display.columns:
         construction_display["Amortização"] = 0.0
     construction_display["Amortização"] = construction_display["Amortização"].fillna(0)
@@ -636,7 +652,6 @@ with tab_cashflow:
         "Accumulated Savings": "Poupança Acumulada",
     })
 
-    # Ordem exata idêntica ao seu Notion
     col_order = [
         "Mês",
         "Prestação Construtora",
@@ -650,8 +665,11 @@ with tab_cashflow:
 
     df_formatado = construction_display[col_order].copy()
     
+    # Formatação condicional: se for o Mês aplica a data, senão aplica os R$
     for col in df_formatado.columns:
-        if col != "Mês":
+        if col == "Mês":
+            df_formatado[col] = df_formatado[col].apply(converter_mes)
+        else:
             df_formatado[col] = df_formatado[col].apply(
                 lambda x: f"R$ {float(x):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
             )
