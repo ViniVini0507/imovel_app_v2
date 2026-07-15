@@ -4,23 +4,29 @@ from notion_client import Client
 
 @st.cache_data(ttl=300) 
 def fetch_notion_data(notion_token: str, database_id: str) -> pd.DataFrame:
-    """Conecta na API do Notion e extrai o banco de dados bruto usando requisição direta."""
-    notion = Client(auth=notion_token)
+    """Conecta na API do Notion forçando a versão estável e extrai o banco de dados."""
+    
+    # 1. Blindagem: .strip() remove qualquer quebra de linha ou espaço invisível
+    token_clean = notion_token.strip()
+    db_id_clean = database_id.strip()
+    
+    # 2. Forçamos a versão 2022-06-28 para acessar a URL clássica sem o erro de data_sources
+    notion = Client(auth=token_clean, notion_version="2022-06-28")
     
     results = []
     
-    # REQUISIÇÃO DIRETA: Ignoramos os erros da biblioteca e mandamos a chamada crua
+    # 3. Requisição direta na URL clássica
     response = notion.request(
-        path=f"databases/{database_id}/query",
+        path=f"databases/{db_id_clean}/query",
         method="POST"
     )
     
     results.extend(response.get("results", []))
     
-    # Paginação: Caso você passe de 100 meses no futuro
+    # Paginação para quando você tiver dezenas de meses
     while response.get("has_more"):
         response = notion.request(
-            path=f"databases/{database_id}/query",
+            path=f"databases/{db_id_clean}/query",
             method="POST",
             body={"start_cursor": response.get("next_cursor")}
         )
@@ -59,7 +65,6 @@ def recalculate_forecast(df: pd.DataFrame, gap_inicial: float, aporte_padrao: fl
     
     is_fechado = df["Status"] == "Fechado"
     
-    # 1. Ajuste do Saldo da Construtora
     pago_construtora = df.loc[is_fechado, "Prestação Construtora"].sum()
     saldo_gap = max(gap_inicial - pago_construtora, 0.0)
     meses_restantes = (~is_fechado).sum()
@@ -68,10 +73,8 @@ def recalculate_forecast(df: pd.DataFrame, gap_inicial: float, aporte_padrao: fl
         parcela_projetada = saldo_gap / meses_restantes
         df.loc[~is_fechado, "Prestação Construtora"] = parcela_projetada
 
-    # 2. Tratamento do Aporte Mensal do Casal
     df.loc[(~is_fechado) & (df["Aporte Casal"] == 0), "Aporte Casal"] = aporte_padrao
     
-    # 3. Matemática Financeira Final
     df["Prestação Construtora"] = df["Prestação Construtora"].fillna(0)
     df["EO"] = df["EO"].fillna(0)
     df["Amortização"] = df["Amortização"].fillna(0)
