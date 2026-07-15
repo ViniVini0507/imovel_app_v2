@@ -253,31 +253,7 @@ construction_df = simulate_construction_phase(
     target_construction_evolution=profile.approved_first_installment,
 )
 
-# =====================================================================
-# MOTOR DE SIMULAÇÃO (Refletirá em todas as abas abaixo)
-# =====================================================================
 
-# 1. Aplica o ajuste do mês de início da evolução de obra
-construction_df.loc[construction_df["Month"] < evolution_start_month, "Construction Evolution"] = 0
-
-# 2. Recalcula a Poupança Mensal baseada no orçamento da Sidebar
-# (Isso garante que se você mudar o orçamento, o gráfico muda na hora)
-construction_df["Monthly Savings"] = monthly_budget - (
-    construction_df["Builder Installment"] + 
-    construction_df["Amortização"] + 
-    construction_df["Construction Evolution"]
-)
-
-# 3. Aplica o Piso Mínimo de Economias
-construction_df["Monthly Savings"] = construction_df["Monthly Savings"].apply(lambda x: max(x, minimum_saving_floor))
-
-# 4. Atualiza o saldo acumulado
-construction_df["Accumulated Savings"] = construction_df["Monthly Savings"].cumsum()
-construction_df["Real Monthly Spending"] = (
-    construction_df["Builder Installment"] + 
-    construction_df["Amortização"] + 
-    construction_df["Construction Evolution"]
-)
 
 real_data = load_real_data(construction_df)
 
