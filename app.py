@@ -360,16 +360,18 @@ with tab_control:
         # =====================================================================
         # INTEGRAÇÃO PROFUNDA: Substituindo os dados teóricos pelos reais do Notion
         # =====================================================================
-        # Isso garante que TODAS as outras abas (Investimentos, Monte Carlo, Decisão) 
-        # usem a realidade do Notion e não o "chute" inicial.
-        
         limit = min(len(df_controle), len(construction_df))
         
-        # Sobrescreve o dataframe base do app com a realidade atualizada
         construction_df.loc[:limit-1, "Builder Installment"] = df_controle["Parcela Construtora (R$)"].iloc[:limit].values
         construction_df.loc[:limit-1, "Construction Evolution"] = df_controle["Evolução de Obra (R$)"].iloc[:limit].values
         construction_df.loc[:limit-1, "Monthly Savings"] = df_controle["Poupança Gerada (R$)"].iloc[:limit].values
         construction_df.loc[:limit-1, "Real Monthly Spending"] = df_controle["Desembolso Real do Mês (R$)"].iloc[:limit].values
+        
+        # NOVA LINHA: Puxa a amortização do Notion para a base do app
+        construction_df.loc[:limit-1, "Amortização"] = df_controle["Amortização"].iloc[:limit].values
+        
+        # CORREÇÃO DO MISTÉRIO: Obriga o app a recalcular a poupança acumulada baseada nos valores reais
+        construction_df["Accumulated Savings"] = construction_df["Monthly Savings"].cumsum()
         
         # Alimenta o motor de investimentos e risco com a sua poupança real
         real_contributions_series = df_controle["Poupança Gerada (R$)"].iloc[:limit]
@@ -554,26 +556,30 @@ with tab_cashflow:
 
     st.divider()
 
-    # Cria uma cópia para não afetar o resto do app
     construction_display = construction_df.copy()
     
-    # Recria a coluna Aporte Casal (Custo Total + Poupança Gerada)
+    # Prevenção caso a coluna fique vazia nos meses futuros
+    if "Amortização" not in construction_display.columns:
+        construction_display["Amortização"] = 0.0
+    construction_display["Amortização"] = construction_display["Amortização"].fillna(0)
+    
     construction_display["Aporte Casal"] = construction_display["Real Monthly Spending"] + construction_display["Monthly Savings"]
     
-    # Renomeia as colunas 
     construction_display = construction_display.rename(columns={
         "Month": "Mês",
         "Builder Installment": "Prestação Construtora",
+        "Amortização": "Amortização",
         "Construction Evolution": "Evolução de Obra (EO)",
         "Real Monthly Spending": "Custo Total",
         "Monthly Savings": "Poupança Mensal",
         "Accumulated Savings": "Poupança Acumulada",
     })
 
-    # Ordem exata das colunas
+    # Ordem exata idêntica ao seu Notion
     col_order = [
         "Mês",
         "Prestação Construtora",
+        "Amortização",
         "Evolução de Obra (EO)",
         "Custo Total",
         "Aporte Casal",
@@ -581,17 +587,14 @@ with tab_cashflow:
         "Poupança Acumulada"
     ]
 
-    # Prepara o DataFrame final
     df_formatado = construction_display[col_order].copy()
     
-    # Formatação blindada (transforma os números em strings no padrão PT-BR)
     for col in df_formatado.columns:
         if col != "Mês":
             df_formatado[col] = df_formatado[col].apply(
                 lambda x: f"R$ {float(x):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
             )
 
-    # Renderiza a tabela nativa
     st.dataframe(
         df_formatado,
         use_container_width=True,
