@@ -358,16 +358,34 @@ with tab_control:
             }
         )
         
+        # 1. Cria a coluna de soma explícita para o total
+        df_controle["Total do Mês (Custo)"] = (
+            df_controle['Parcela Construtora (R$)'] + 
+            df_controle['Amortização'] + 
+            df_controle['Poupança Gerada (R$)'] + 
+            df_controle['Evolução de Obra (R$)']
+        )
+        
         renda_casal = profile.household_income
         fig.add_hline(y=renda_casal * 0.30, line_dash="dash", line_color="gold", annotation_text="⚠️ 30% da Renda")
         fig.add_hline(y=renda_casal * 0.50, line_dash="dash", line_color="red", annotation_text="🚨 50% da Renda")
 
+        # 2. O HACK: Adiciona a linha invisível que força o tooltip a mostrar o total
+        fig.add_scatter(
+            x=df_controle['Mês Formatado'], 
+            y=df_controle["Total do Mês (Custo)"],
+            mode='lines', 
+            line=dict(color='rgba(0,0,0,0)'), # Invisível
+            name='Total do Mês (Custo)',
+            hovertemplate="<b>Total do Mês (Custo) : R$ %{y:,.2f}</b>"
+        )
+        
         # O hovermode="x unified" agora somará as 4 colunas automaticamente no total
         fig.update_layout(
             barmode='stack', 
             legend_title_text='', 
             xaxis_title="Cronograma até as Chaves",
-            hovermode="x unified", 
+            hovermode="x unified",
             hoverlabel=dict(bgcolor="#1E1E1E", font_size=14, font_family="sans-serif")
         )
         fig.update_traces(hovertemplate="<b>R$ %{y:,.2f}</b>", selector=dict(type='bar'))

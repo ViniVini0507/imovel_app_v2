@@ -5,12 +5,12 @@ import plotly.graph_objects as go
 def cashflow_stacked_chart(df, renda=None):
     fig = go.Figure()
 
-    # Adicionando as 4 camadas da pilha
+    # Camadas empilhadas
     traces = [
         ("Prestação Construtora", "Builder Installment", "#4F79E6"),
         ("Amortização", "Amortização", "#9B59B6"),
         ("Poupança", "Monthly Savings", "#2ECC71"),
-        ("Evolução da obra", "Construction Evolution", "#FF6B3C")
+        ("Evolução de obra", "Construction Evolution", "#FF6B3C")
     ]
 
     for name, col, color in traces:
@@ -21,25 +21,25 @@ def cashflow_stacked_chart(df, renda=None):
             marker_color=color,
         ))
 
-    if renda:
-        fig.add_hline(y=renda * 0.30, line_dash="dash", line_color="#facc15", annotation_text="30% da renda")
-        fig.add_hline(y=renda * 0.50, line_dash="dash", line_color="#ef4444", annotation_text="50% da renda")
+    # O HACK: Soma tudo para o Tooltip
+    total_col = df["Builder Installment"] + df["Amortização"] + df["Monthly Savings"] + df["Construction Evolution"]
+    
+    fig.add_trace(go.Scatter(
+        x=df["Month"],
+        y=total_col,
+        mode="lines",
+        line=dict(color="rgba(0,0,0,0)"), # Invisível
+        name="Total do Mês (Custo)",
+        hovertemplate="<b>Total do Mês (Custo) : R$ %{y:,.2f}</b>",
+        showlegend=True
+    ))
 
+    # ... (resto da função como estava) ...
     fig.update_layout(
         barmode="stack",
-        xaxis_title="Meses até as chaves",
-        yaxis_title="Valor mensal (R$)",
-        # "x unified" é o que faz aparecer o Total somado lá em cima no box
-        hovermode="x unified", 
-        template="plotly_white",
-        legend_title_text="",
-        height=460,
-        margin=dict(l=10, r=10, t=10, b=10),
+        hovermode="x unified",
+        # ...
     )
-    
-    # Formata os números do Tooltip
-    fig.update_traces(hovertemplate="%{y:,.2f}")
-    
     return fig
 
 
