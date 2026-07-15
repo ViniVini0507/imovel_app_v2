@@ -361,9 +361,17 @@ with tab_control:
             hovertemplate="<b>R$ %{y:,.2f}</b>"
         )
 
+        # No seu bloco do gráfico da tab_control dentro do app.py:
         fig.update_layout(
-            barmode='stack', legend_title_text='', xaxis_title="Cronograma até as Chaves",
-            hovermode="x unified", hoverlabel=dict(bgcolor="#1E1E1E", font_size=14, font_family="sans-serif")
+            barmode='stack', 
+            legend_title_text='', 
+            xaxis_title="Meses até as Chaves",
+            hovermode="x unified", # Isso gera o "Total" automático
+            hoverlabel=dict(
+                bgcolor="#1E1E1E",
+                font_size=14,
+                font_family="sans-serif"
+            )
         )
         fig.update_traces(hovertemplate="<b>R$ %{y:,.2f}</b>", selector=dict(type='bar'))
         st.plotly_chart(fig, use_container_width=True)

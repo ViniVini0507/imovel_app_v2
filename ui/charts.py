@@ -3,88 +3,43 @@ import plotly.graph_objects as go
 
 
 def cashflow_stacked_chart(df, renda=None):
-    """
-    Desenha o esforço financeiro real do período de construção.
-
-    A ordem da pilha é intencional:
-    1. Parcela do construtor (base)
-    2. Poupança (meio)
-    3. Evolução da obra (topo)
-
-    Isso permite visualizar o esforço mensal real sem confundir a poupança
-    com uma linha separada do fluxo de caixa.
-    """
-    df_plot = df.copy()
-
-    df_plot["Parcela do construtor"] = df_plot["Builder Installment"]
-    df_plot["Poupança"] = df_plot["Monthly Savings"]
-    df_plot["Evolução da obra"] = df_plot["Construction Evolution"]
-
     fig = go.Figure()
 
-    fig.add_trace(go.Bar(
-        x=df_plot["Month"],
-        y=df_plot["Parcela do construtor"],
-        name="Parcela do construtor",
-        marker_color="#4F79E6",
-        hovertemplate="<b>Parcela do construtor</b><br>R$ %{y:,.2f}<extra></extra>",
-    ))
+    # Adicionando as 4 camadas da pilha
+    traces = [
+        ("Prestação Construtora", "Builder Installment", "#4F79E6"),
+        ("Amortização", "Amortização", "#9B59B6"),
+        ("Poupança", "Monthly Savings", "#2ECC71"),
+        ("Evolução da obra", "Construction Evolution", "#FF6B3C")
+    ]
 
-    fig.add_trace(go.Bar(
-        x=df_plot["Month"],
-        y=df_plot["Poupança"],
-        name="Poupança",
-        marker_color="#2ECC71",
-        hovertemplate="<b>Poupança</b><br>R$ %{y:,.2f}<extra></extra>",
-    ))
-
-    fig.add_trace(go.Bar(
-        x=df_plot["Month"],
-        y=df_plot["Evolução da obra"],
-        name="Evolução da obra",
-        marker_color="#FF6B3C",
-        hovertemplate="<b>Evolução da obra</b><br>R$ %{y:,.2f}<extra></extra>",
-    ))
-
-    # Linha invisível apenas para hover do total real do mês.
-    fig.add_trace(go.Scatter(
-        x=df_plot["Month"],
-        y=df_plot["Real Monthly Spending"],
-        mode="lines",
-        line=dict(color="rgba(0,0,0,0)"),
-        name="Gasto real total",
-        hovertemplate="<b>Gasto real total</b><br>R$ %{y:,.2f}<extra></extra>",
-        showlegend=False,
-    ))
+    for name, col, color in traces:
+        fig.add_trace(go.Bar(
+            x=df["Month"],
+            y=df[col],
+            name=name,
+            marker_color=color,
+        ))
 
     if renda:
-        fig.add_hline(
-            y=renda * 0.30,
-            line_dash="dash",
-            line_color="#facc15",
-            annotation_text="30% da renda",
-            annotation_position="top left",
-        )
-
-        fig.add_hline(
-            y=renda * 0.50,
-            line_dash="dash",
-            line_color="#ef4444",
-            annotation_text="50% da renda",
-            annotation_position="top left",
-        )
+        fig.add_hline(y=renda * 0.30, line_dash="dash", line_color="#facc15", annotation_text="30% da renda")
+        fig.add_hline(y=renda * 0.50, line_dash="dash", line_color="#ef4444", annotation_text="50% da renda")
 
     fig.update_layout(
         barmode="stack",
         xaxis_title="Meses até as chaves",
         yaxis_title="Valor mensal (R$)",
-        hovermode="x unified",
+        # "x unified" é o que faz aparecer o Total somado lá em cima no box
+        hovermode="x unified", 
         template="plotly_white",
         legend_title_text="",
         height=460,
         margin=dict(l=10, r=10, t=10, b=10),
     )
-
+    
+    # Formata os números do Tooltip
+    fig.update_traces(hovertemplate="%{y:,.2f}")
+    
     return fig
 
 
