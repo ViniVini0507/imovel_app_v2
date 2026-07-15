@@ -554,26 +554,41 @@ with tab_cashflow:
 
     st.divider()
 
-    construction_display = construction_df.drop(columns=["Stress Amount", "Stress Ratio"]).rename(columns={
+    # Cria uma cópia para não afetar o resto do app
+    construction_display = construction_df.copy()
+    
+    # Recria a coluna Aporte Casal (Custo Total + Poupança Gerada) para bater com o Notion
+    construction_display["Aporte Casal"] = construction_display["Real Monthly Spending"] + construction_display["Monthly Savings"]
+    
+    # Renomeia as colunas para a exata nomenclatura que você usa
+    construction_display = construction_display.rename(columns={
         "Month": "Mês",
-        "Builder Installment": "Prestação do construtor",
-        "Construction Evolution": "Evolução da obra",
-        "Annual Installment": "Parcela anual",
-        "Total Cost": "Custo total",
-        "Monthly Savings": "Poupança mensal",
-        "Accumulated Savings": "Poupança acumulada",
-        "Real Monthly Spending": "Gasto real mensal",
+        "Builder Installment": "Prestação Construtora",
+        "Construction Evolution": "Evolução de Obra (EO)",
+        "Real Monthly Spending": "Custo Total",
+        "Monthly Savings": "Poupança Mensal",
+        "Accumulated Savings": "Poupança Acumulada",
     })
 
+    # Define a sequência exata de exibição (da esquerda para a direita)
+    col_order = [
+        "Mês",
+        "Prestação Construtora",
+        "Evolução de Obra (EO)",
+        "Custo Total",
+        "Aporte Casal",
+        "Poupança Mensal",
+        "Poupança Acumulada"
+    ]
+
     st.dataframe(
-        construction_display.style.format({
-            "Prestação do construtor": "R$ {:,.2f}",
-            "Evolução da obra": "R$ {:,.2f}",
-            "Parcela anual": "R$ {:,.2f}",
-            "Custo total": "R$ {:,.2f}",
-            "Poupança mensal": "R$ {:,.2f}",
-            "Poupança acumulada": "R$ {:,.2f}",
-            "Gasto real mensal": "R$ {:,.2f}",
+        construction_display[col_order].style.format({
+            "Prestação Construtora": "R$ {:,.2f}",
+            "Evolução de Obra (EO)": "R$ {:,.2f}",
+            "Custo Total": "R$ {:,.2f}",
+            "Aporte Casal": "R$ {:,.2f}",
+            "Poupança Mensal": "R$ {:,.2f}",
+            "Poupança Acumulada": "R$ {:,.2f}",
         }),
         use_container_width=True,
         hide_index=True,
