@@ -374,6 +374,12 @@ with tab_control:
         # Alimenta o motor de investimentos e risco com a sua poupança real
         real_contributions_series = df_controle["Poupança Gerada (R$)"].iloc[:limit]
 
+        # RECRIA O ESTADO DE SESSÃO PARA A ABA DE INVESTIMENTOS NÃO QUEBRAR
+        if "real_contributions" not in st.session_state:
+            st.session_state.real_contributions = {}
+        for m, val in zip(df_controle["Mês"], df_controle["Poupança Gerada (R$)"]):
+            st.session_state.real_contributions[int(m)] = float(val)
+
     except Exception as e:
         st.error(f"Erro de conexão com o Notion ou processamento de dados.")
         st.info("Verifique se o arquivo 'notion_integration.py' está na mesma pasta e se o 'secrets.toml' está preenchido corretamente.")

@@ -60,25 +60,20 @@ def fetch_notion_data(notion_token: str, database_id: str) -> pd.DataFrame:
     return df
 
 def recalculate_forecast(df: pd.DataFrame, gap_inicial: float, aporte_padrao: float) -> pd.DataFrame:
-    """Motor de FP&A: Trava o passado (Fechado) e recalcula o futuro (Projetado)."""
+    """Motor de FP&A: Respeita os dados do Notion e calcula os totais de caixa."""
     df = df.copy()
     
     is_fechado = df["Status"] == "Fechado"
     
-    pago_construtora = df.loc[is_fechado, "Prestação Construtora"].sum()
-    saldo_gap = max(gap_inicial - pago_construtora, 0.0)
-    meses_restantes = (~is_fechado).sum()
-    
-    if meses_restantes > 0:
-        parcela_projetada = saldo_gap / meses_restantes
-        df.loc[~is_fechado, "Prestação Construtora"] = parcela_projetada
-
+    # 1. Tratamento do Aporte Mensal do Casal (Se estiver vazio no Notion, assume os 6000)
     df.loc[(~is_fechado) & (df["Aporte Casal"] == 0), "Aporte Casal"] = aporte_padrao
     
+    # 2. Limpeza de dados vazios (Mantendo os valores exatos da Construtora que você digitou)
     df["Prestação Construtora"] = df["Prestação Construtora"].fillna(0)
     df["EO"] = df["EO"].fillna(0)
     df["Amortização"] = df["Amortização"].fillna(0)
     
+    # 3. Matemática de Fluxo de Caixa Final
     df["Desembolso Real do Mês (R$)"] = df["Prestação Construtora"] + df["EO"] + df["Amortização"]
     df["Poupança Gerada (R$)"] = df["Aporte Casal"] - df["Desembolso Real do Mês (R$)"]
     df["Poupança Acumulada (R$)"] = df["Poupança Gerada (R$)"].cumsum()
