@@ -529,7 +529,6 @@ with tab_exec:
         "Próxima ação recomendada e resumo da posição financeira na entrega das chaves.",
     )
 
-   
     st.subheader("Resumo financeiro real")
 
     # ======================
@@ -545,7 +544,6 @@ with tab_exec:
     c1.metric("Caixa projetado", money(projected_cash_at_keys))
     c2.metric("Necessidade real", money(essential_need))
     c3.metric("Folga", money(gap))
-
 
     # ======================
     # TRAJETÓRIA REAL vs PLANO
@@ -571,7 +569,6 @@ with tab_exec:
     else:
         st.success("✅ Dentro ou acima do plano")
 
-
     # ======================
     # FORECAST BASEADO NO REAL
     # ======================
@@ -589,7 +586,6 @@ with tab_exec:
     st.metric("Previsão nas chaves", money(forecast_total))
     st.metric("Folga prevista", money(forecast_gap))
 
-
     # ======================
     # DECISÃO REAL
     # ======================
@@ -600,21 +596,17 @@ with tab_exec:
             "❌ Mantendo esse ritmo você NÃO chega. "
             "→ Aumente sua poupança mensal"
         )
-
     elif forecast_gap < monthly_living_expenses * 3:
         st.warning(
             "⚠️ Você chega no limite. "
             "→ Melhor aumentar um pouco a poupança"
         )
-
     else:
         st.success(
             "✅ Você está bem. "
             "→ Pode manter ou otimizar investimentos"
         )
 
-
-with tab_cashflow:
 with tab_cashflow:
     section(
         "Fase de construção — fluxo de caixa",
