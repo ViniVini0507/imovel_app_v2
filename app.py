@@ -358,6 +358,67 @@ with tab_control:
         st.plotly_chart(fig, use_container_width=True)
 
         # =====================================================================
+        # SIMULADOR DE AMORTIZAÇÃO DA CONSTRUTORA (TIRO CURTO)
+        # =====================================================================
+        st.divider()
+        st.markdown("### 🎯 Simulador de Amortização (Construtora)")
+        st.caption("Simule o impacto de usar sua Poupança Acumulada para aniquilar as parcelas da construtora de trás pra frente.")
+
+        # 1. Descobre a munição atual (Poupança Acumulada do último mês fechado)
+        meses_fechados = df_controle[df_controle["Status"] == "Fechado"]
+        if not meses_fechados.empty:
+            poupanca_disponivel = meses_fechados["Poupança Acumulada (R$)"].iloc[-1]
+            pago_construtora = meses_fechados["Parcela Construtora (R$)"].sum()
+        else:
+            poupanca_disponivel = df_controle["Poupança Acumulada (R$)"].iloc[0]
+            pago_construtora = 0.0
+
+        # 2. Descobre a dívida atual com a construtora
+        saldo_devedor_atual = max(14600.00 - pago_construtora, 0.0)
+
+        # 3. Descobre o valor da parcela que será eliminada (média das projetadas)
+        meses_projetados = df_controle[df_controle["Status"] == "Projetado"]
+        if not meses_projetados.empty:
+            parcela_alvo = meses_projetados["Parcela Construtora (R$)"].iloc[0]
+        else:
+            parcela_alvo = 528.08 # Fallback de segurança
+
+        # Interface do Simulador
+        col_sim1, col_sim2 = st.columns([1, 1])
+        with col_sim1:
+            aporte_simulado = st.number_input(
+                "Valor do aporte extra (R$)",
+                min_value=0.0,
+                max_value=float(poupanca_disponivel),
+                value=0.0,
+                step=500.0,
+                help="O valor máximo permitido é a sua Poupança Acumulada atual."
+            )
+        with col_sim2:
+            st.info(f"**Saldo Devedor Atual:** R$ {saldo_devedor_atual:,.2f}\n\n**Munição Disponível:** R$ {poupanca_disponivel:,.2f}")
+
+        # Motor de Recálculo do Simulador
+        if aporte_simulado > 0:
+            if parcela_alvo > 0:
+                meses_atuais_restantes = saldo_devedor_atual / parcela_alvo
+                novo_saldo_devedor = max(saldo_devedor_atual - aporte_simulado, 0.0)
+                novos_meses_restantes = novo_saldo_devedor / parcela_alvo
+                meses_eliminados = meses_atuais_restantes - novos_meses_restantes
+            else:
+                meses_eliminados = 0
+                novo_saldo_devedor = 0
+                novos_meses_restantes = 0
+
+            st.success(f"🔥 Impacto de injetar **R$ {aporte_simulado:,.2f}** hoje:")
+            
+            c_res1, c_res2, c_res3 = st.columns(3)
+            c_res1.metric("Parcelas Eliminadas", f"{int(meses_eliminados)} meses", "De trás pra frente")
+            c_res2.metric("Novo Saldo Devedor", f"R$ {novo_saldo_devedor:,.2f}")
+            c_res3.metric("Prazo Restante", f"{int(novos_meses_restantes)} meses")
+            
+            st.caption(f"*Nota: Ao eliminar {int(meses_eliminados)} meses de construtora, a sua sobra de caixa de R$ 6.000,00 mensais nesses meses finais poderá ser 100% direcionada para absorver a Evolução de Obra ou engordar o Caixa do Imóvel.*")
+
+        # =====================================================================
         # INTEGRAÇÃO PROFUNDA: Substituindo os dados teóricos pelos reais do Notion
         # =====================================================================
         limit = min(len(df_controle), len(construction_df))
