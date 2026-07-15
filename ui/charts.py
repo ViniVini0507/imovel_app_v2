@@ -24,13 +24,14 @@ def cashflow_stacked_chart(df, renda=None):
     # O HACK: Soma tudo para o Tooltip
     total_col = df["Builder Installment"] + df["Amortização"] + df["Monthly Savings"] + df["Construction Evolution"]
     
+    # O HACK corrigido: Limpando o template para não duplicar o nome
     fig.add_trace(go.Scatter(
         x=df["Month"],
         y=total_col,
         mode="lines",
-        line=dict(color="rgba(0,0,0,0)"), # Invisível
-        name="Total do Mês (Custo)",
-        hovertemplate="<b>Total do Mês (Custo) : R$ %{y:,.2f}</b>",
+        line=dict(color="rgba(0,0,0,0)"), 
+        name="Total do Mês (Custo)", # O rótulo fica aqui
+        hovertemplate="<b>R$ %{y:,.2f}</b><extra></extra>", # Apenas o valor aqui
         showlegend=True
     ))
 

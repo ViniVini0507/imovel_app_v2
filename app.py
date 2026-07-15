@@ -370,14 +370,14 @@ with tab_control:
         fig.add_hline(y=renda_casal * 0.30, line_dash="dash", line_color="gold", annotation_text="⚠️ 30% da Renda")
         fig.add_hline(y=renda_casal * 0.50, line_dash="dash", line_color="red", annotation_text="🚨 50% da Renda")
 
-        # 2. O HACK: Adiciona a linha invisível que força o tooltip a mostrar o total
+        # O HACK corrigido: Removemos o texto duplicado do hovertemplate
         fig.add_scatter(
             x=df_controle['Mês Formatado'], 
             y=df_controle["Total do Mês (Custo)"],
             mode='lines', 
-            line=dict(color='rgba(0,0,0,0)'), # Invisível
-            name='Total do Mês (Custo)',
-            hovertemplate="<b>Total do Mês (Custo) : R$ %{y:,.2f}</b>"
+            line=dict(color='rgba(0,0,0,0)'), 
+            name='Total do Mês (Custo)', # O rótulo fica aqui
+            hovertemplate="<b>R$ %{y:,.2f}</b><extra></extra>" # Apenas o valor aqui
         )
         
         # O hovermode="x unified" agora somará as 4 colunas automaticamente no total
