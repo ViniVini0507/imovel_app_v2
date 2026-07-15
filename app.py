@@ -289,214 +289,96 @@ tab_control, tab_exec, tab_cashflow, tab_investments, tab_financing, tab_renovat
 
 months_list = [int(m) for m in construction_df["Month"].tolist()]
 
-# Sincroniza/seeda o session_state. Se o perfil mudar (prazo diferente),
-# os dicionários são resetados para os valores do modelo.
-if "real_contributions" not in st.session_state or set(st.session_state.real_contributions.keys()) != set(months_list):
-    st.session_state.real_contributions = {
-        int(row["Month"]): float(row["Monthly Savings"])
-        for _, row in construction_df.iterrows()
-    }
-
-if "real_evolution" not in st.session_state or set(st.session_state.real_evolution.keys()) != set(months_list):
-    st.session_state.real_evolution = {
-        int(row["Month"]): float(row["Construction Evolution"])
-        for _, row in construction_df.iterrows()
-    }
-
-controladoria_df = pd.DataFrame({
-    "Month": construction_df["Month"],
-    "Planned Monthly Savings": construction_df["Monthly Savings"],
-    "Real Monthly Savings": [st.session_state.real_contributions[m] for m in months_list],
-    "Planned Construction Evolution": construction_df["Construction Evolution"],
-    "Construction Evolution": [st.session_state.real_evolution[m] for m in months_list],
-})
+# ============================
+# CONTROLADORIA MENSAL — SINCRONIZADA COM NOTION
+# ============================
 
 with tab_control:
-    section(
-        "Controladoria mensal",
-        "Atualize mês a mês. O restante do app recalcula automaticamente.",
-    )
-
-    st.subheader("📊 Controle mensal (modo operacional)")
-
-    # ==============================
-    # PARÂMETROS
-    # ==============================
-    current_month = st.number_input(
-        "Mês atual",
-        min_value=1,
-        max_value=len(construction_df),
-        value=1,
-        step=1
-    )
-
-    # ==============================
-    # BASE
-    # ==============================
-    editable_df = construction_df.copy()
-
-    editable_df["Month"] = construction_df["Month"]
-
-    editable_df["Planned Savings"] = construction_df["Monthly Savings"]
-
-    editable_df["Real Savings"] = [
-        real_data.get(int(row["Month"]), {}).get("savings", float(row["Monthly Savings"]))
-        for _, row in construction_df.iterrows()
-    ]
-
-    # ==============================
-    # CONTROLAR EDIÇÃO
-    # ==============================
-    def is_editable(month):
-        return month <= current_month
-
-    editable_mask = editable_df["Month"].apply(is_editable)
-
-    # ==============================
-    # DATA EDITOR COM UX MELHOR
-    # ==============================
-    edited_df = st.data_editor(
-        editable_df[["Month", "Planned Savings", "Real Savings"]],
-        use_container_width=True,
-        num_rows="fixed",
-        column_config={
-            "Month": st.column_config.NumberColumn("Mês", disabled=True),
-            "Planned Savings": st.column_config.NumberColumn(
-                "Planejado (R$)", disabled=True, format="R$ %.0f"
-            ),
-            "Real Savings": st.column_config.NumberColumn(
-                "Real (R$)",
-                format="R$ %.0f",
-                step=100.0,
-                min_value=0.0
-            ),
-        },
-        key="control_editor"
-    )
-
-    # ==============================
-    # SALVAR JSON
-    # ==============================
-    for _, row in edited_df.iterrows():
-        month = int(row["Month"])
-
-        if month <= current_month:
-            if month not in real_data:
-                real_data[month] = {}
-
-            real_data[month]["savings"] = float(row["Real Savings"])
-
-    save_real_data(real_data)
-
-    # ==============================
-    # MÉTRICAS OPERACIONAIS
-    # ==============================
-    real_series = pd.Series([
-        real_data.get(int(row["Month"]), {}).get(
-            "savings",
-            float(row["Monthly Savings"])
+    st.subheader("📋 Controladoria (Sincronizada com Notion)")
+    
+    try:
+        from notion_integration import fetch_notion_data, recalculate_forecast
+        import plotly.express as px
+        
+        # 1. Puxa os dados da API (Lendo do seu secrets.toml)
+        df_bruto = fetch_notion_data(
+            notion_token=st.secrets["NOTION_TOKEN"],
+            database_id=st.secrets["NOTION_DATABASE_ID"]
         )
-        for _, row in construction_df.iterrows()
-    ])
-
-    planned_total = construction_df["Monthly Savings"].cumsum()
-    real_total = real_series.cumsum()
-
-    gap_series = real_total - planned_total
-
-    current_gap = gap_series.iloc[current_month - 1]
-
-    c1, c2, c3 = st.columns(3)
-
-    c1.metric(
-        "Total planejado até agora",
-        money(planned_total.iloc[current_month - 1])
-    )
-
-    c2.metric(
-        "Total real",
-        money(real_total.iloc[current_month - 1])
-    )
-
-    c3.metric(
-        "Desvio do plano",
-        money(current_gap),
-        delta=money(current_gap)
-    )
-
-    # ==============================
-    # STATUS DO PLANO
-    # ==============================
-    if current_gap < -3000:
-        st.error("❌ Você está atrasado no plano — precisa compensar")
-    elif current_gap < 0:
-        st.warning("⚠️ Ligeiramente abaixo — monitorar")
-    else:
-        st.success("✅ Dentro ou acima do plano")
-
-    # ==============================
-    # MÉDIA REAL (INSIGHT)
-    # ==============================
-    avg_real = real_series.iloc[:current_month].mean()
-
-    st.info(
-        f"Média real até agora: {money(avg_real)} por mês"
-    )
-
-    # ==============================
-    # FORECAST REAL (GAME CHANGER)
-    # ==============================
-    remaining_months = len(construction_df) - current_month
-
-    forecast_total = real_total.iloc[current_month - 1] + avg_real * remaining_months
-
-    st.subheader("🔮 Se continuar assim")
-
-    st.metric(
-        "Previsão de caixa nas chaves",
-        money(forecast_total)
-    )
-
-    # ==============================
-    # DECISÃO
-    # ==============================
-    effective_renovation_cash = renovation_cost * renovation_cash_ratio
-    essential_need = effective_renovation_cash + (monthly_living_expenses * 6)
-
-    forecast_gap = forecast_total - essential_need
-
-    st.metric(
-        "Folga prevista",
-        money(forecast_gap)
-    )
-
-    if forecast_gap < 0:
-        st.error(
-            "❌ Nesse ritmo você NÃO chega → aumente a poupança"
+        
+        # 2. Roda a inteligência financeira (GAP de 14.600 e Aporte de 6.000)
+        df_controle = recalculate_forecast(
+            df=df_bruto,
+            gap_inicial=14600.0,
+            aporte_padrao=6000.0
         )
-    elif forecast_gap < 10000:
-        st.warning(
-            "⚠️ Chega no limite → ideal aumentar um pouco"
+        
+        # 3. Visão Facilitada (Cards Superiores)
+        total_eo_geral = df_controle['Evolução de Obra (R$)'].sum()
+        total_poupanca_geral = df_controle['Poupança Gerada (R$)'].sum()
+        total_esforco_caixa = df_controle['Desembolso Real do Mês (R$)'].sum()
+
+        col_t1, col_t2, col_t3 = st.columns(3)
+        col_t1.metric("💰 1. Poupança Acumulada", money(total_poupanca_geral), "Seu poder de fogo")
+        col_t2.metric("2. Total de Evol. de Obra (EO)", money(total_eo_geral))
+        col_t3.metric("3. Esforço Total de Caixa", money(total_esforco_caixa))
+
+        st.divider()
+
+        # 4. Gráfico Empilhado (Exclusivo da Controladoria)
+        st.markdown("### Composição Mensal e Alertas de Risco")
+        
+        fig = px.bar(
+            df_controle, 
+            x='Mês', 
+            y=['Parcela Construtora (R$)', 'Poupança Gerada (R$)', 'Evolução de Obra (R$)'],
+            labels={'value': 'Orçamento Mensal (R$)', 'variable': 'Composição'},
+            color_discrete_map={
+                'Parcela Construtora (R$)': '#1f77b4',  
+                'Poupança Gerada (R$)': '#2ca02c',       
+                'Evolução de Obra (R$)': '#ff7f0e'       
+            }
         )
-    else:
-        st.success(
-            "✅ Está confortável → pode manter estratégia"
+        
+        renda_casal = profile.household_income
+        fig.add_hline(y=renda_casal * 0.30, line_dash="dash", line_color="gold", annotation_text="⚠️ 30% da Renda")
+        fig.add_hline(y=renda_casal * 0.50, line_dash="dash", line_color="red", annotation_text="🚨 50% da Renda")
+
+        fig.add_scatter(
+            x=df_controle['Mês'], y=df_controle['Desembolso Real do Mês (R$)'],
+            mode='lines', line=dict(color='rgba(0,0,0,0)'), name='Total do Mês (Custo)',
+            hovertemplate="<b>R$ %{y:,.2f}</b>"
         )
 
+        fig.update_layout(
+            barmode='stack', legend_title_text='', xaxis_title="Meses até as Chaves",
+            hovermode="x unified", hoverlabel=dict(bgcolor="#1E1E1E", font_size=14, font_family="sans-serif")
+        )
+        fig.update_traces(hovertemplate="<b>R$ %{y:,.2f}</b>", selector=dict(type='bar'))
+        st.plotly_chart(fig, use_container_width=True)
 
-# Mantemos apenas os campos já calculados pelo modelo financeiro central.
-construction_df["Poupança Gerada"] = construction_df["Monthly Savings"]
-construction_df["Desembolso Real"] = construction_df["Real Monthly Spending"]
+        # =====================================================================
+        # INTEGRAÇÃO PROFUNDA: Substituindo os dados teóricos pelos reais do Notion
+        # =====================================================================
+        # Isso garante que TODAS as outras abas (Investimentos, Monte Carlo, Decisão) 
+        # usem a realidade do Notion e não o "chute" inicial.
+        
+        limit = min(len(df_controle), len(construction_df))
+        
+        # Sobrescreve o dataframe base do app com a realidade atualizada
+        construction_df.loc[:limit-1, "Builder Installment"] = df_controle["Parcela Construtora (R$)"].iloc[:limit].values
+        construction_df.loc[:limit-1, "Construction Evolution"] = df_controle["Evolução de Obra (R$)"].iloc[:limit].values
+        construction_df.loc[:limit-1, "Monthly Savings"] = df_controle["Poupança Gerada (R$)"].iloc[:limit].values
+        construction_df.loc[:limit-1, "Real Monthly Spending"] = df_controle["Desembolso Real do Mês (R$)"].iloc[:limit].values
+        
+        # Alimenta o motor de investimentos e risco com a sua poupança real
+        real_contributions_series = df_controle["Poupança Gerada (R$)"].iloc[:limit]
 
-# ============================
-# FEATURE 6: o resto do app usa SEMPRE real_contributions_series, nunca
-# os valores planejados diretamente — isso já vale para portfolio_df, mc
-# e (via projected_cash_at_keys) para o decision_engine logo abaixo.
-# ============================
-real_contributions_series = pd.Series([
-    real_data.get(int(row["Month"]), {}).get("savings", float(row["Monthly Savings"]))
-    for _, row in construction_df.iterrows()
-])
+    except Exception as e:
+        st.error(f"Erro de conexão com o Notion ou processamento de dados.")
+        st.info("Verifique se o arquivo 'notion_integration.py' está na mesma pasta e se o 'secrets.toml' está preenchido corretamente.")
+        st.code(str(e))
+        st.stop()
 
 portfolio_df = simulate_portfolio(
     contributions=real_contributions_series,
