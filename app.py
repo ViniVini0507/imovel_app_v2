@@ -339,15 +339,22 @@ with tab_control:
         # Aplica a conversão de datas no Eixo X
         df_controle['Mês Formatado'] = df_controle['Mês'].apply(converter_mes)
         
+        # INCLUÍMOS 'Amortização' na lista de Y e definimos as cores
         fig = px.bar(
             df_controle, 
             x='Mês Formatado', 
-            y=['Parcela Construtora (R$)', 'Poupança Gerada (R$)', 'Evolução de Obra (R$)'],
+            y=[
+                'Parcela Construtora (R$)', 
+                'Amortização', 
+                'Poupança Gerada (R$)', 
+                'Evolução de Obra (R$)'
+            ],
             labels={'value': 'Orçamento Mensal (R$)', 'variable': 'Composição', 'Mês Formatado': 'Mês'},
             color_discrete_map={
-                'Parcela Construtora (R$)': '#1f77b4',  
-                'Poupança Gerada (R$)': '#2ca02c',       
-                'Evolução de Obra (R$)': '#ff7f0e'       
+                'Parcela Construtora (R$)': '#1f77b4',  # Azul
+                'Amortização': '#9B59B6',               # Roxo (para diferenciar)
+                'Poupança Gerada (R$)': '#2ca02c',      # Verde
+                'Evolução de Obra (R$)': '#ff7f0e'      # Laranja
             }
         )
         
@@ -355,23 +362,13 @@ with tab_control:
         fig.add_hline(y=renda_casal * 0.30, line_dash="dash", line_color="gold", annotation_text="⚠️ 30% da Renda")
         fig.add_hline(y=renda_casal * 0.50, line_dash="dash", line_color="red", annotation_text="🚨 50% da Renda")
 
-        fig.add_scatter(
-            x=df_controle['Mês Formatado'], y=df_controle['Desembolso Real do Mês (R$)'],
-            mode='lines', line=dict(color='rgba(0,0,0,0)'), name='Total do Mês (Custo)',
-            hovertemplate="<b>R$ %{y:,.2f}</b>"
-        )
-
-        # No seu bloco do gráfico da tab_control dentro do app.py:
+        # O hovermode="x unified" agora somará as 4 colunas automaticamente no total
         fig.update_layout(
             barmode='stack', 
             legend_title_text='', 
-            xaxis_title="Meses até as Chaves",
-            hovermode="x unified", # Isso gera o "Total" automático
-            hoverlabel=dict(
-                bgcolor="#1E1E1E",
-                font_size=14,
-                font_family="sans-serif"
-            )
+            xaxis_title="Cronograma até as Chaves",
+            hovermode="x unified", 
+            hoverlabel=dict(bgcolor="#1E1E1E", font_size=14, font_family="sans-serif")
         )
         fig.update_traces(hovertemplate="<b>R$ %{y:,.2f}</b>", selector=dict(type='bar'))
         st.plotly_chart(fig, use_container_width=True)
